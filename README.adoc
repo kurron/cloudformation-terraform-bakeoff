@@ -7,16 +7,30 @@
 :warning-caption: :warning:
 :caution-caption: :fire:
 
-= Terraform vs CloudFormation 
+= Terraform vs CloudFormation
 Ron Kurr <rkurr@jvmguy.com>
 
 
 toc::[]
 
 == Overview
-TIP: foo 
+This is a very unscientific comparison between https://www.terraform.io/[Terraform] and https://aws.amazon.com/cloudformation/[AWS CloudFormation].  What we'll do is to implement a couple tasks in both tools and evaluate their strengths and weaknesses.
 
-IMPORTANT: bar 
+=== VPC Creation
+The first task is to create a new VPC that contains a single public subnet and two private subnets.
+
+=== Bastion Box
+SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from 50.235.141.198.
+
+=== ECS Cluster
+Create an ECS cluster using Spot Instances of type M4.large.  Install it into the private subnets.
+
+=== Deploy An ECS Service
+Deploy a container so that each node in the cluster gets one instance.
+
+TIP: foo
+
+IMPORTANT: bar
 
 == Prerequisites
 
@@ -24,13 +38,13 @@ IMPORTANT: bar
 * an SSH client
 * familiarity with https://aws.amazon.com/ec2/[EC2]
 
-== Building 
+== Building
 
-== Installation 
+== Installation
 
-== Tips and Tricks 
+== Tips and Tricks
 
-== Troubleshooting 
+== Troubleshooting
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
