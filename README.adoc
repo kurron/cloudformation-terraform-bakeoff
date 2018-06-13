@@ -16,6 +16,9 @@ toc::[]
 == Overview
 This is a very unscientific comparison between https://www.terraform.io/[Terraform] and https://aws.amazon.com/cloudformation/[AWS CloudFormation].  What we'll do is to implement a couple tasks in both tools and evaluate their strengths and weaknesses.
 
+=== Tagging
+Resource tagging is very important in AWS so we'll apply a common set of tags to all resources, calling out any differences in tagging support.
+
 === VPC Creation
 The first task is to create a new VPC that contains a single public subnet and two private subnets.
 
@@ -27,6 +30,9 @@ Create an ECS cluster using Spot Instances of type M4.large.  Install it into th
 
 === Deploy An ECS Service
 Deploy a container so that each node in the cluster gets one instance.
+
+=== Update The ECS Service
+Update a new version of the container with different environment values.
 
 TIP: foo
 
