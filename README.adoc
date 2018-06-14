@@ -54,9 +54,9 @@ IMPORTANT: bar
 
 == Comparison
 === VPC Creation
-Creating of a VCP between the two tools is fairly similar.  Each makes you describe the various building blocks needed to construct a fully functional VPC and assemble them as needed.  Where they do differ is how to handle multiple instances of the same object.  For example, the scenario is to place  subnets into all availability zones of the region.  The Virgina region has 6 AZs while the Ohio region only has 3.  Terraform has a construct that allows you to build the same resource N number of times, saving on duplicated code.  CloudFormation does not provide anything similar so you have to duplicate the directives, increasing the amount of code and making the script less reusable.
+Creating a VCP between the two tools is fairly similar.  Each makes you describe the various building blocks needed to construct a fully functional VPC and assemble them as needed.  Where they do differ is in the handling multiple instances of the same object.  For example, the scenario is to place  subnets into all availability zones of the region.  The Virgina region has 6 AZs while the Ohio region only has 3.  Terraform has a construct that allows you to build the same resource N number of times, saving on duplicated code.  CloudFormation does not provide anything similar so you have to duplicate the directives, increasing the amount of code and making the script less reusable.
 
-NOTE: it has been awhile since I've scoured through the CloudFormation documentation looking for a "loop" construct but I suspect it still doesn't exist because the https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/VPC/VPC_With_Managed_NAT_And_Private_Subnet.yaml[AWS Samples] still repeat declarations for each subnet.
+NOTE: it has been awhile since I've scoured through the CloudFormation documentation looking for a "loop" construct but I suspect it still doesn't exist because the https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/ECS/EC2LaunchType/clusters/public-vpc.yml[AWS Samples] still repeat declarations for each subnet.
 
 Compare to source to the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
 
