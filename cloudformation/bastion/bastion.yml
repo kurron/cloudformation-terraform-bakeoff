@@ -1,0 +1,174 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This template creates Bastion boxes, allowing SSH access to EC2 instances.
+
+Metadata:
+    Foo:
+        Description: 'something clever'
+    Bar:
+        Description: 'something clever'
+
+# These show up in the console and are expected to be provided by the operator
+Parameters:
+    Project:
+        Description: 'Project name this VPC is has been created for'
+        Type: 'String'
+        Default: 'BakeOff'
+
+    Creator:
+        Description: 'Tool or person creating this VPC'
+        Type: 'String'
+        Default: 'CloudFormation'
+
+    Environment:
+        Description: 'Context the resource will be used in.  Common values are production, testing and development.'
+        Type: 'String'
+        Default: 'development'
+
+    Notes:
+        Description: 'Notes to apply, normally edited in the console.'
+        Type: 'String'
+        Default: 'No notes'
+
+    SshKeyName:
+        Description: 'Name of the key to use when creating the EC2 instances'
+        Type: 'AWS::EC2::KeyPair::KeyName'
+        ConstraintDescription: must be the name of an existing EC2 KeyPair.
+        Default: 'BakeOff'
+
+    SshCidr:
+        Description: 'IP range, in CIDR notation, that is allowed to SSH into the Bastion'
+        Type: 'String'
+        Default: '50.235.141.198/32'
+
+    VPC:
+        Description: 'ID of the VPC the bastions will be inserted into.'
+        Type: 'AWS::EC2::VPC::Id'
+
+    PublicSubnets:
+        Description: 'List of subnet IDs the bastions can be inserted into.'
+        Type: 'List<AWS::EC2::Subnet::Id>'
+
+Mappings:
+    RegionToAmazonAMI:
+        us-east-1:
+            HVM64: ami-00000000
+        us-east-2:
+            HVM64: ami-922914f7
+        us-west-1:
+            HVM64: ami-00000000
+        us-west-2:
+            HVM64: ami-00000000
+
+Resources:
+    # locked down the bastion servers so only inbound SSH is allowed
+    BastionSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: 'SSH traffic only'
+            VpcId:
+                Ref: 'VPC'
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: !Ref 'SshCidr'
+            Tags:
+                - Key: 'Name'
+                  Value:
+                      'Fn::Join': [ ':', [ 'Bastion', !Ref 'AWS::StackName' ] ]
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'SSH access to bastion hosts'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value: 'No notes'
+
+    # auto scaling launch configuration for the Bastion servers
+    BastionLaunchConfiguration:
+        Type: AWS::AutoScaling::LaunchConfiguration
+        Properties:
+            EbsOptimized: false
+            ImageId:
+                Fn::FindInMap:
+                    - RegionToAmazonAMI
+                    - Ref: 'AWS::Region'
+                    - HVM64
+            InstanceMonitoring: false
+            InstanceType: t2.nano
+            KeyName:
+                Ref: 'SshKeyName'
+            SecurityGroups:
+                - !Ref 'BastionSecurityGroup'
+
+    # auto scaling group for the Bastion servers
+    BastionAutoScalingGroup:
+        Type: AWS::AutoScaling::AutoScalingGroup
+        Properties:
+            Cooldown: '60'
+            DesiredCapacity: '1'
+            HealthCheckType: 'EC2'
+            LaunchConfigurationName:
+                Ref: 'BastionLaunchConfiguration'
+            MaxSize: '2'
+            MinSize: '1'
+            Tags:
+                - Key: 'Name'
+                  Value:
+                      'Fn::Join': [ ':', [ 'Bastion', !Ref 'AWS::StackName' ] ]
+                  PropagateAtLaunch: true
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                  PropagateAtLaunch: true
+                - Key: 'Purpose'
+                  Value: 'Jump server'
+                  PropagateAtLaunch: true
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                  PropagateAtLaunch: true
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                  PropagateAtLaunch: true
+                - Key: 'Freetext'
+                  Value: 'Use SSH forwarding to simplify access to internal servers'
+                  PropagateAtLaunch: true
+            VPCZoneIdentifier:
+              Ref: PublicSubnets
+
+    # Turn off the instances after work hours
+    ScheduledActionDown:
+        Type: AWS::AutoScaling::ScheduledAction
+        Properties:
+            AutoScalingGroupName:
+                Ref: BastionAutoScalingGroup
+            DesiredCapacity: 0
+            MaxSize: 0
+            MinSize: 0
+            Recurrence: '0 0 * * SUN-SAT'
+
+    # Turn on the instances during work hours
+    ScheduledActionUp:
+        Type: AWS::AutoScaling::ScheduledAction
+        Properties:
+            AutoScalingGroupName:
+                Ref: BastionAutoScalingGroup
+            DesiredCapacity: 1
+            MaxSize: 2
+            MinSize: 1
+            Recurrence: '0 7 * * MON-FRI'
+
+Outputs:
+    BastionSecurityGroup:
+        Description: 'Group ID of the Bastion security group'
+        Value: !GetAtt BastionSecurityGroup.GroupId
