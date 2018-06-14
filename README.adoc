@@ -20,7 +20,7 @@ This is a very unscientific comparison between https://www.terraform.io/[Terrafo
 Resource tagging is very important in AWS so we'll apply a common set of tags to all resources, calling out any differences in tagging support.
 
 === VPC Creation
-The first task is to create a new VPC that contains a single public subnet and two private subnets.
+The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region.
 
 === Bastion Box
 SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from 50.235.141.198.
@@ -51,6 +51,14 @@ IMPORTANT: bar
 == Tips and Tricks
 
 == Troubleshooting
+
+== Comparison
+=== VPC Creation
+Creating of a VCP between the two tools is fairly similar.  Each makes you describe the various building blocks needed to construct a fully functional VPC and assemble them as needed.  Where they do differ is how to handle multiple instances of the same object.  For example, the scenario is to place  subnets into all availability zones of the region.  The Virgina region has 6 AZs while the Ohio region only has 3.  Terraform has a construct that allows you to build the same resource N number of times, saving on duplicated code.  CloudFormation does not provide anything similar so you have to duplicate the directives, increasing the amount of code and making the script less reusable.
+
+NOTE: it has been awhile since I've scoured through the CloudFormation documentation looking for a "loop" construct but I suspect it still doesn't exist because the https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/VPC/VPC_With_Managed_NAT_And_Private_Subnet.yaml[AWS Samples] still repeat declarations for each subnet.
+
+Compare to source to the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
