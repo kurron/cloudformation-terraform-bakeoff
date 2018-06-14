@@ -1,0 +1,3 @@
+.terraform/
+proposed-changes.plan
+terraform-log.txt

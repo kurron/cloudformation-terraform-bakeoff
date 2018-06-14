@@ -7,16 +7,16 @@ module "vpc" {
     source = "../"
 
     region             = "us-east-2"
-    name               = "Debug"
-    project            = "Debug"
-    purpose            = "Debugging Terraform modules"
-    creator            = "kurron@jvmguy.com"
+    name               = "Terraform"
+    project            = "Bake Off"
+    purpose            = "Terraform vs CloudFormation comparison"
+    creator            = "rkurr@jvmguy.com"
     environment        = "development"
-    freetext           = "No notes at this time."
+    freetext           = "One public and private subnet in each AZ."
     cidr_range         = "10.0.0.0/16"
-    private_subnets    = []
+    private_subnets    = ["10.0.1.0/24","10.0.3.0/24","10.0.5.0/24"]
     public_subnets     = ["10.0.2.0/24","10.0.4.0/24","10.0.6.0/24"]
-    populate_all_zones = "true"
+    populate_all_zones = "false"
 }
 
 output "vpc_id" {
