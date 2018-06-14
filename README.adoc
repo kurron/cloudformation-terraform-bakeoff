@@ -23,7 +23,7 @@ Resource tagging is very important in AWS so we'll apply a common set of tags to
 The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region.
 
 === Bastion Box
-SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from 50.235.141.198.
+SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from a single ip address.  Create an autoscaling group that will ensure we always have at least one box up and running.  The autoscaling group should be configured to turn off the boxes after normal business hours.
 
 === ECS Cluster
 Create an ECS cluster using Spot Instances of type M4.large.  Install it into the private subnets.
