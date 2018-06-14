@@ -27,3 +27,8 @@ output "ssh_key_name" {
     value = "${aws_key_pair.bastion.key_name}"
     description = "Name of the Bastion's SSH key"
 }
+
+output "security_group_id" {
+    value = "${aws_security_group.bastion_access.id}"
+    description = "ID of the security group controlling network access to the Bastion instances."
+}

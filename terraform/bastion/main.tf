@@ -1,5 +1,5 @@
 terraform {
-    required_version = ">= 0.10.6"
+    required_version = ">= 0.11.7"
     backend "s3" {}
 }
 
@@ -42,12 +42,55 @@ resource "aws_key_pair" "bastion" {
     public_key      = "${var.public_ssh_key}"
 }
 
+resource "aws_security_group" "bastion_access" {
+    name_prefix = "bastion-"
+    description = "Controls access to the Bastion boxes"
+    vpc_id      = "${var.vpc_id}"
+    tags {
+        Name        = "Bastion Access"
+        Project     = "${var.project}"
+        Purpose     = "Controls access to the Bastion boxes"
+        Creator     = "${var.creator}"
+        Environment = "${var.environment}"
+        Freetext    = "${var.freetext}"
+    }
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_security_group_rule" "bastion_ingress" {
+    type              = "ingress"
+    cidr_blocks       = "${var.bastion_ingress_cidr_blocks}"
+    from_port         = 22
+    protocol          = "tcp"
+    security_group_id = "${aws_security_group.bastion_access.id}"
+    to_port           = 22
+    description       = "Restrict SSH access to specific addresses"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_security_group_rule" "bastion_egress" {
+    type              = "egress"
+    cidr_blocks       = ["0.0.0.0/0"]
+    from_port         = 0
+    protocol          = "all"
+    security_group_id = "${aws_security_group.bastion_access.id}"
+    to_port           = 65535
+    description       = "Allow unrestricted egress"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
 resource "aws_launch_configuration" "bastion" {
     name_prefix                 = "bastion-"
     image_id                    = "${data.aws_ami.amazon_linux_ami.id}"
     instance_type               = "${var.instance_type}"
     key_name                    = "${aws_key_pair.bastion.key_name}"
-    security_groups             = ["${var.security_group_ids}"]
+    security_groups             = ["${aws_security_group.bastion_access.id}"]
     associate_public_ip_address = true
     enable_monitoring           = true
     lifecycle {

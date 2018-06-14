@@ -83,12 +83,17 @@ variable "public_ssh_key" {
     description = "Public half of the SSH key to import into AWS"
 }
 
-variable "security_group_ids" {
-    type = "list"
-    description = "List of security groups to apply to the instances"
-}
-
 variable "subnet_ids" {
     type = "list"
     description = "List of subnets to create the instances in"
+}
+
+variable "bastion_ingress_cidr_blocks" {
+    type = "list"
+    description = "IP ranges to allows inbound SSH access to, e.g. [98.216.147.13/32]"
+}
+
+variable "vpc_id" {
+    type = "string"
+    description = "ID of the VPC to associate the created resources to"
 }

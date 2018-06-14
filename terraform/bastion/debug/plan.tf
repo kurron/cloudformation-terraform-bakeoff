@@ -1,35 +1,25 @@
 terraform {
-    required_version = ">= 0.10.6"
+    required_version = ">= 0.11.7"
     backend "s3" {}
 }
 
 data "terraform_remote_state" "vpc" {
     backend = "s3"
     config {
-        bucket = "transparent-test-terraform-state"
-        key    = "us-west-2/debug/networking/vpc/terraform.tfstate"
+        bucket = "bake-off-terraform-state"
         region = "us-east-1"
-    }
-}
-
-data "terraform_remote_state" "security-groups" {
-    backend = "s3"
-    config {
-        bucket = "transparent-test-terraform-state"
-        key    = "us-west-2/debug/networking/security-groups/terraform.tfstate"
-        region = "us-east-1"
+        key    = "us-east-2/debug/networking/vpc/terraform.tfstate"
     }
 }
 
 module "bastion" {
     source = "../"
 
-    region = "us-west-2"
-
-    project     = "Debug"
-    creator     = "kurron@jvmguy.com"
-    environment = "development"
-    freetext    = "No notes at this time."
+    region                      = "us-east-2"
+    project                     = "Bake Off"
+    creator                     = "rkurr@jvmguy.com"
+    environment                 = "development"
+    freetext                    = "No notes at this time."
     instance_type               = "t2.nano"
     ssh_key_name                = "Bastion"
     min_size                    = "1"
@@ -41,10 +31,10 @@ module "bastion" {
     scale_down_min_size         = "0"
     scale_up_cron               = "0 7 * * MON-FRI"
     scale_down_cron             = "0 0 * * SUN-SAT"
-    public_ssh_key              = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCv70t6ne08BNDf3aAQOdhe7h1NssBGPEucjKA/gL9vXpclGBqZnvOiQltKrOeOLzcbDJYDMYIJCwtoq7R/3RLOLDSi5OChhFtyjGULkIxa2dJgKXWPz04E1260CMqkKcgrQ1AaYA122zepakE7d+ysMoKSbQSVGaleZ6aFxe8DfKMzAFFra44tF5JUSMpuqwwI/bKEyehX/PDMNe/GWUTk+5c4XC6269NbaeWMivH2CiYPPBXblj6IT+QhBY5bTEFT57GmUff1sJOyhGN+9kMhlsSrXtp1A5wGiZ8nhoUduphzP3h0RNbRVA4mmI4jMnOF51uKbOvNk3Y79FSIS9Td Access to Bastion box"
-
-    security_group_ids = ["${data.terraform_remote_state.security-groups.bastion_id}"]
-    subnet_ids         = "${data.terraform_remote_state.vpc.public_subnet_ids}"
+    public_ssh_key              = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDfYQ0mYkeux8yK8w/Wb3LnYDHVB9mwCaaN/UXnD/1gN4Ka7ArcMCHHzo4JUnHl6AM2vzZbbt+sgETZoYgpMGZIh+6wwnxOSdRen/b4aKer0ni8yW38r/DnhXa4FGBiwhgMBCs43e7TDnwSwJBUNpBbcD99XnYzvtsbOV0tHYUh11VoqAi4xqha3+L4G00tpQFk/WU+YZicrPjjMhtd14fnlmaMaxI3On5We3b/OXkSuqTnBjE074dmyORy0V6Lp6+814Cnme4OHR/15fRHp6JfZc1dGKgJdyM1csrxWzuJmPkdPnfwFIR+xbx6jIps/uojCV+ADe5TS+3OrJVIbtaB rkurr@jvmguy.com"
+    bastion_ingress_cidr_blocks = ["50.235.141.198/32"]
+    subnet_ids                  = "${data.terraform_remote_state.vpc.public_subnet_ids}"
+    vpc_id                      = "${data.terraform_remote_state.vpc.vpc_id}"
 }
 
 output "ami_id" {
@@ -69,4 +59,8 @@ output "auto_scaling_group_name" {
 
 output "ssh_key_name" {
     value = "${module.bastion.ssh_key_name}"
+}
+
+output "security_group_id" {
+    value = "${module.bastion.security_group_id}"
 }
