@@ -62,7 +62,7 @@ Another minor difference is that Terraform is command-line only while CloudForma
 
 NOTE: CloudFormation does have a command-line but it simply kicks off the process, requiring you to then monitor the job in the console.
 
-Compare to source to the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
+Compare the source of the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
