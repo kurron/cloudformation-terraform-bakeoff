@@ -56,7 +56,11 @@ IMPORTANT: bar
 === VPC Creation
 Creating a VCP between the two tools is fairly similar.  Each makes you describe the various building blocks needed to construct a fully functional VPC and assemble them as needed.  Where they do differ is in the handling multiple instances of the same object.  For example, the scenario is to place  subnets into all availability zones of the region.  The Virgina region has 6 AZs while the Ohio region only has 3.  Terraform has a construct that allows you to build the same resource N number of times, saving on duplicated code.  CloudFormation does not provide anything similar so you have to duplicate the directives, increasing the amount of code and making the script less reusable.
 
-NOTE: it has been awhile since I've scoured through the CloudFormation documentation looking for a "loop" construct but I suspect it still doesn't exist because the https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/ECS/EC2LaunchType/clusters/public-vpc.yml[AWS Samples] still repeat declarations for each subnet.
+NOTE: It has been awhile since I've scoured through the CloudFormation documentation looking for a "loop" construct but I suspect it still doesn't exist because the https://github.com/awslabs/aws-cloudformation-templates/blob/master/aws/services/ECS/EC2LaunchType/clusters/public-vpc.yml[AWS Samples] still repeat declarations for each subnet.
+
+Another minor difference is that Terraform is command-line only while CloudFormation is GUI based.  Depending on the operator, this may be a differentiator.
+
+NOTE: CloudFormation does have a command-line but it simply kicks off the process, requiring you to then monitor the job in the console.
 
 Compare to source to the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
 
