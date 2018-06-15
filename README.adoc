@@ -34,10 +34,6 @@ Deploy a container so that each node in the cluster gets one instance.
 === Update The ECS Service
 Update a new version of the container with different environment values.
 
-TIP: foo
-
-IMPORTANT: bar
-
 == Prerequisites
 
 * an https://aws.amazon.com/[AWS] account
@@ -65,9 +61,11 @@ NOTE: CloudFormation does have a command-line but it simply kicks off the proces
 Compare the source of the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
 
 === Bastion Box
-Creation of the Bastion box, complete with an auto scaling group, scheduled actions and a security group is a little easier using Terraform.  The reason for that is that https://www.terraform.io/docs/state/index.html[Terraform has a way to share state information] between modules.  This allows the VPC information I created in a previous step to be "imported" into the Bastion module.  In CloudFormation, VPC information has to be provided by the operator.  Another difference between the tools is that Terraform allows you to create a new SSH Keypair but CloudFormation doesn't seem to have that support.  The operator has to create one prior via the console and feed the key pair name into CloudFormation.  A final difference is how each tool deals with AMIs.  AMIs are specific to a region and Terraform has a function that can be used to search for that region's current AMI.  In CloudFormation, we have to manage an internal map of region to AMIs, which means the list can become stale.
+Creation of the Bastion box, complete with an auto scaling group, scheduled actions and a security group is a little easier using Terraform.  The reason for that is that https://www.terraform.io/docs/state/index.html[Terraform has a way to share state information] between modules.  This allows the VPC information I created in a previous step to be "imported" into the Bastion module.  In CloudFormation, VPC information has to be provided by the operator.  Another difference between the tools is that Terraform allows you to create a new SSH key pair but CloudFormation doesn't seem to have that support.  The operator has to create one prior via the console and feed the key pair name into CloudFormation.  A final difference is how each tool deals with AMIs.  AMIs are specific to a region and Terraform has a function that can be used to search for that region's current AMI.  In CloudFormation, we have to manage an internal map of region to AMIs, which means the list can become stale.
 
 NOTE: it is possible that AWS has added AMI lookup functionality but I haven't seen it yet.
+
+Compare the source of the link:terraform/bastion/main.tf[Terraform version] to the link:cloudformation/bastion/bastion.yml[CloudFormation version] and see which you prefer.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
