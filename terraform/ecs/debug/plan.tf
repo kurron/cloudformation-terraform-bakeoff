@@ -21,6 +21,15 @@ data "terraform_remote_state" "vpc" {
     }
 }
 
+data "terraform_remote_state" "bastion" {
+    backend = "s3"
+    config {
+        bucket = "bake-off-terraform-state"
+        key    = "us-west-2/debug/compute/bastion/terraform.tfstate"
+        region = "us-east-1"
+    }
+}
+
 module "alb" {
     source = "../"
 
@@ -34,6 +43,24 @@ module "alb" {
     internal           = "No"
     subnet_ids         = "${data.terraform_remote_state.vpc.public_subnet_ids}"
     vpc_id             = "${data.terraform_remote_state.vpc.vpc_id}"
+
+    ami_regexp                       = "^amzn-ami-.*-amazon-ecs-optimized$"
+    instance_type                    = "m4.large"
+    ssh_key_name                     = "${data.terraform_remote_state.bastion.ssh_key_name}"
+    ebs_optimized                    = "false"
+    spot_price                       = "0.1000"
+    cluster_min_size                 = "1"
+    cluster_desired_size             = "${length( data.terraform_remote_state.vpc.private_subnet_ids )}"
+    cluster_max_size                 = "${length( data.terraform_remote_state.vpc.private_subnet_ids )}"
+    cooldown                         = "90"
+    health_check_grace_period        = "300"
+    ecs_subnet_ids                   = "${data.terraform_remote_state.vpc.private_subnet_ids}"
+    scale_down_cron                  = "0 0 * * SUN-SAT"
+    scale_up_cron                    = "0 7 * * MON-FRI"
+    cluster_scaled_down_min_size     = "0"
+    cluster_scaled_down_desired_size = "0"
+    cluster_scaled_down_max_size     = "0"
+    bastion_security_group_id        = "${data.terraform_remote_state.bastion.security_group_id}"
 }
 
 output "alb_id" {

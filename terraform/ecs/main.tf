@@ -7,6 +7,215 @@ provider "aws" {
     region     = "${var.region}"
 }
 
+data "aws_ami" "lookup" {
+    most_recent = true
+    name_regex  = "${var.ami_regexp}"
+    owners      = ["amazon"]
+    filter {
+       name   = "architecture"
+       values = ["x86_64"]
+    }
+    filter {
+       name   = "image-type"
+       values = ["machine"]
+    }
+    filter {
+       name   = "state"
+       values = ["available"]
+    }
+    filter {
+       name   = "virtualization-type"
+       values = ["hvm"]
+    }
+    filter {
+       name   = "hypervisor"
+       values = ["xen"]
+    }
+    filter {
+       name   = "root-device-type"
+       values = ["ebs"]
+    }
+}
+
+data "template_file" "ecs_cloud_config" {
+    template = "${file("${path.module}/files/cloud-config.yml.template")}"
+    vars {
+        cluster_name = "${aws_ecs_cluster.main.name}"
+    }
+}
+
+data "template_cloudinit_config" "cloud_config" {
+    gzip          = false
+    base64_encode = false
+    part {
+        content_type = "text/cloud-config"
+        content      = "${data.template_file.ecs_cloud_config.rendered}"
+    }
+}
+
+# construct a role that allow ECS instances to interact with load balancers
+resource "aws_iam_role" "default_ecs_role" {
+    name_prefix = "ecs-role"
+    description = "Allows ECS workers to assume required roles"
+    assume_role_policy = "${file( "${path.module}/files/trust.json" )}"
+}
+
+resource "aws_iam_role_policy" "default_ecs_service_role_policy" {
+    name_prefix = "ecs-service-role-${replace(var.project, " ", "-")}-${var.environment}-"
+    role = "${aws_iam_role.default_ecs_role.id}"
+    policy = "${file( "${path.module}/files/permissions.json" )}"
+}
+
+resource "aws_iam_instance_profile" "default_ecs" {
+    name_prefix = "ecs-instance-profile-${replace(var.project, " ", "-")}-${var.environment}-"
+    role        = "${aws_iam_role.default_ecs_role.name}"
+}
+
+resource "aws_security_group" "ec2_access" {
+    name_prefix = "ec2-"
+    description = "Controls access to the EC2 instances"
+    vpc_id      = "${var.vpc_id}"
+    tags {
+        Name        = "EC2 Access"
+        Project     = "${var.project}"
+        Purpose     = "Controls access to the EC2 instances"
+        Creator     = "${var.creator}"
+        Environment = "${var.environment}"
+        Freetext    = "${var.freetext}"
+    }
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_security_group_rule" "ec2_ingress_bastion" {
+    type                     = "ingress"
+    from_port                = 0
+    protocol                 = "all"
+    security_group_id        = "${aws_security_group.ec2_access.id}"
+    source_security_group_id = "${var.bastion_security_group_id}"
+    to_port                  = 65535
+    description              = "Only allow traffic from the Bastion boxes"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_security_group_rule" "ec2_ingress_alb" {
+    type                     = "ingress"
+    from_port                = 0
+    protocol                 = "all"
+    security_group_id        = "${aws_security_group.ec2_access.id}"
+    source_security_group_id = "${aws_security_group.alb_access.id}"
+    to_port                  = 65535
+    description              = "Only allow traffic from the load balancers"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_security_group_rule" "ec2_egress" {
+    type               = "egress"
+    cidr_blocks        = ["0.0.0.0/0"]
+    from_port          = 0
+    protocol           = "all"
+    security_group_id  = "${aws_security_group.ec2_access.id}"
+    to_port            = 65535
+    description       = "Allow unrestricted egress"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_ecs_cluster" "main" {
+    name = "${var.name}"
+
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_launch_configuration" "worker_spot" {
+    name_prefix          = "${var.name}-"
+    image_id             = "${data.aws_ami.lookup.id}"
+    instance_type        = "${var.instance_type}"
+    iam_instance_profile = "${aws_iam_instance_profile.default_ecs.id}"
+    key_name             = "${var.ssh_key_name}"
+    security_groups      = ["${aws_security_group.ec2_access.id}"]
+    user_data            = "${data.template_cloudinit_config.cloud_config.rendered}"
+    enable_monitoring    = true
+    ebs_optimized        = "${var.ebs_optimized}"
+    spot_price           = "${var.spot_price}"
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+resource "aws_autoscaling_group" "worker_spot" {
+    name_prefix               = "${var.name}"
+    max_size                  = "${var.cluster_max_size}"
+    min_size                  = "${var.cluster_min_size}"
+    default_cooldown          = "${var.cooldown}"
+    launch_configuration      = "${aws_launch_configuration.worker_spot.name}"
+    health_check_grace_period = "${var.health_check_grace_period}"
+    health_check_type         = "EC2"
+    desired_capacity          = "${var.cluster_desired_size}"
+    vpc_zone_identifier       = ["${var.ecs_subnet_ids}"]
+    termination_policies      = ["ClosestToNextInstanceHour", "OldestInstance", "Default"]
+    enabled_metrics           = ["GroupMinSize", "GroupMaxSize", "GroupDesiredCapacity", "GroupInServiceInstances", "GroupPendingInstances", "GroupStandbyInstances", "GroupTerminatingInstances", "GroupTotalInstances"]
+    lifecycle {
+        create_before_destroy = true
+    }
+    tag {
+        key                 = "Name"
+        value               = "ECS Worker (spot)"
+        propagate_at_launch = true
+    }
+    tag {
+        key                 = "Project"
+        value               = "${var.project}"
+        propagate_at_launch = true
+    }
+    tag {
+        key                 = "Purpose"
+        value               = "ECS Worker (spot)"
+        propagate_at_launch = true
+    }
+    tag {
+        key                 = "Creator"
+        value               = "${var.creator}"
+        propagate_at_launch = true
+    }
+    tag {
+        key                 = "Environment"
+        value               = "${var.environment}"
+        propagate_at_launch = true
+    }
+    tag {
+        key                 = "Freetext"
+        value               = "${var.freetext}"
+        propagate_at_launch = true
+    }
+}
+
+resource "aws_autoscaling_schedule" "spot_scale_up" {
+    autoscaling_group_name = "${aws_autoscaling_group.worker_spot.name}"
+    scheduled_action_name  = "ECS Worker Scale Up (spot)"
+    recurrence             = "${var.scale_up_cron}"
+    min_size               = "${var.cluster_min_size}"
+    max_size               = "${var.cluster_max_size}"
+    desired_capacity       = "${var.cluster_desired_size}"
+}
+
+resource "aws_autoscaling_schedule" "spot_scale_down" {
+    autoscaling_group_name = "${aws_autoscaling_group.worker_spot.name}"
+    scheduled_action_name  = "ECS Worker Scale Down (spot)"
+    recurrence             = "${var.scale_down_cron}"
+    min_size               = "${var.cluster_scaled_down_min_size}"
+    max_size               = "${var.cluster_scaled_down_max_size}"
+    desired_capacity       = "${var.cluster_scaled_down_desired_size}"
+}
+
 resource "aws_security_group" "alb_access" {
     name_prefix = "alb-"
     description = "Controls access to the Application Load Balancer"
