@@ -1,0 +1,235 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This template creates a new Elastic Load Balancer (ELB) into an existing VPC.
+
+Metadata:
+    Foo:
+        Description: 'something clever'
+    Bar:
+        Description: 'something clever'
+
+# These show up in the console and are expected to be provided by the operator
+Parameters:
+    Project:
+        Description: 'Project name this cluster is has been created for'
+        Type: 'String'
+        Default: 'Bake Off'
+
+    Creator:
+        Description: 'Tool or person creating this cluster'
+        Type: 'String'
+        Default: 'CloudFormation'
+
+    Environment:
+        Description: 'Context the cluster will be used in.  Common values are production, testing and development.'
+        Type: 'String'
+        Default: 'development'
+
+    Notes:
+        Description: 'Notes to apply, normally edited in the console.'
+        Type: 'String'
+        Default: 'No notes'
+
+    Subnets:
+        Description: 'Which subnets the Applicaion Load Balancer should be deployed to.'
+        Type: List<AWS::EC2::Subnet::Id>
+
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: 'Which VPC the Applicaion Load Balancer should be deployed to.'
+
+    LoadBalancerPort:
+        Description: The port the load balancer should listen on
+        Type: Number
+        Default: 80
+
+    LoadBalancerType:
+        Description: Define if the balancer is an external or internal balancer (internet-facing or internal)
+        Type: String
+        Default: internet-facing
+
+Resources:
+    PublicLoadBalancerSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Access to the public facing load balancer
+            VpcId: !Ref 'VPC'
+            SecurityGroupIngress:
+            - CidrIp: 0.0.0.0/0
+              IpProtocol: -1
+
+    EcsHostSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Access to the ECS hosts that run containers
+            VpcId: !Ref 'VPC'
+
+    EcsSecurityGroupIngressFromPublicALB:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from the public ALB
+            GroupId: !Ref 'EcsHostSecurityGroup'
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref 'PublicLoadBalancerSecurityGroup'
+
+    EcsSecurityGroupIngressFromSelf:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from other containers in the same security group
+            GroupId: !Ref 'EcsHostSecurityGroup'
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref 'EcsHostSecurityGroup'
+
+    Bucket:
+        Type: 'AWS::S3::Bucket'
+        Properties:
+            Tags:
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'Load balancer logs'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value:
+                      Ref: Notes
+
+    BucketPolicy:
+        Type: 'AWS::S3::BucketPolicy'
+        Properties:
+            Bucket:
+               Ref: Bucket
+            PolicyDocument:
+                Statement:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "s3:PutObject"
+                        Resource:
+                            Fn::Join:
+                                - ""
+                                -
+                                    - "arn:aws:s3:::"
+                                    -
+                                        Ref: Bucket
+                                    - "/*"
+                        Principal: '*'
+
+    LoadBalancer:
+        Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+        Properties:
+            LoadBalancerAttributes:
+                - Key: 'access_logs.s3.enabled'
+                  Value: 'true'
+                - Key: 'access_logs.s3.bucket'
+                  Value:
+                      Ref: Bucket
+                - Key: 'deletion_protection.enabled'
+                  Value: 'false'
+                - Key: 'idle_timeout.timeout_seconds'
+                  Value: '60'
+            Scheme:
+                Ref: LoadBalancerType
+            SecurityGroups:
+                Ref: [!Ref 'PublicLoadBalancerSecurityGroup']
+            Subnets:
+                Ref: Subnets
+            Tags:
+                - Key: 'Name'
+                  Value: !Ref 'AWS::StackName'
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'Load balancer'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value:
+                      Ref: Notes
+
+    # We define a default target group here, as this is a mandatory parameter
+    # when creating an Application Load Balancer Listener. This is not used, instead
+    # a target group is created per-service in each service template (../services/*)
+    DefaultTargetGroup:
+        Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+        Properties:
+            HealthCheckIntervalSeconds: 10
+            HealthCheckPath: '/'
+            HealthCheckPort:
+                Ref: LoadBalancerPort
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 5
+            HealthyThresholdCount: 3
+            Matcher:
+                HttpCode: '200-399'
+            Port:
+                Ref: LoadBalancerPort
+            Protocol: HTTP
+            Tags:
+                - Key: 'Name'
+                  Value: !Ref 'AWS::StackName'
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'Default Group'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value: 'Required but never used by ECS'
+            UnhealthyThresholdCount: 3
+            VpcId:
+                Ref: VPC
+
+    # bind the listener to the target group
+    LoadBalancerListener:
+        Type: 'AWS::ElasticLoadBalancingV2::Listener'
+        Properties:
+            DefaultActions:
+                - Type: forward
+                  TargetGroupArn:
+                      Ref: DefaultTargetGroup
+            LoadBalancerArn:
+                Ref: LoadBalancer
+            Port:
+                Ref: LoadBalancerPort
+            Protocol: HTTP
+
+Outputs:
+    LoadBalancer:
+        Description: A reference to the Application Load Balancer
+        Value:
+            Ref: LoadBalancer
+
+    LoadBalancerUrl:
+        Description: The URL of the ALB
+        Value: !GetAtt LoadBalancer.DNSName
+
+    LoadBalancerListener:
+        Description: A reference to the associated listener
+        Value:
+            Ref: LoadBalancerListener
+
+    LogBucket:
+        Description: The logical id (name) of the S3 bucket where access logs get written to
+        Value:
+            Ref: Bucket
+
+    LogBucketDomainName:
+        Description: The domain name of the S3 bucket where access logs get written to
+        Value: !GetAtt Bucket.DomainName
