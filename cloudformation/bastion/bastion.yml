@@ -50,6 +50,17 @@ Parameters:
         Description: 'List of subnet IDs the bastions can be inserted into.'
         Type: 'List<AWS::EC2::Subnet::Id>'
 
+    ScaleUpExpression:
+        Description: 'Cron expression indicating when instances should be spun up.'
+        Type: 'String'
+        Default: '0 7 * * MON-FRI'
+
+    ScaleDownExpression:
+        Description: 'Cron expression indicating when instances should be spun down.'
+        Type: 'String'
+        Default: '0 0 * * SUN-SAT'
+
+
 Mappings:
     RegionToAmazonAMI:
         us-east-1:
@@ -155,7 +166,8 @@ Resources:
             DesiredCapacity: 0
             MaxSize: 0
             MinSize: 0
-            Recurrence: '0 0 * * SUN-SAT'
+            Recurrence:
+                Ref: ScaleUpExpression
 
     # Turn on the instances during work hours
     ScheduledActionUp:
@@ -166,7 +178,8 @@ Resources:
             DesiredCapacity: 1
             MaxSize: 2
             MinSize: 1
-            Recurrence: '0 7 * * MON-FRI'
+            Recurrence:
+                Ref: ScaleDownExpression
 
 Outputs:
     BastionSecurityGroup:
