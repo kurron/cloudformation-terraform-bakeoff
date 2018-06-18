@@ -47,3 +47,8 @@ output "cluster_name" {
     value = "${aws_ecs_cluster.main.name}"
     description = "The name of the cluster"
 }
+
+output "role_id" {
+    value = "${aws_iam_role.default_ecs_role.id}"
+    description = "ID of the role that allows for interacting with the load balancer"
+}

@@ -246,6 +246,20 @@ resource "aws_security_group_rule" "alb_ingress_insecure" {
     }
 }
 
+resource "aws_security_group_rule" "alb_egress" {
+    type                     = "egress"
+    from_port                = 0
+    protocol                 = "all"
+    security_group_id        = "${aws_security_group.alb_access.id}"
+    source_security_group_id = "${aws_security_group.ec2_access.id}"
+    to_port                  = 65535
+    description              = "Allow egress only to ECS instances."
+    lifecycle {
+        create_before_destroy = true
+    }
+}
+
+
 resource "aws_s3_bucket" "access_logs" {
     bucket_prefix = "access-logs-"
     acl           = "private"

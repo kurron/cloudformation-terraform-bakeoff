@@ -30,7 +30,7 @@ data "terraform_remote_state" "bastion" {
     }
 }
 
-module "alb" {
+module "ecs" {
     source = "../"
 
     region             = "us-east-2"
@@ -64,33 +64,43 @@ module "alb" {
 }
 
 output "alb_id" {
-    value = "${module.alb.alb_id}"
+    value = "${module.ecs.alb_id}"
 }
 
 output "alb_arn" {
-    value = "${module.alb.alb_arn}"
+    value = "${module.ecs.alb_arn}"
 }
 
 output "alb_arn_suffix" {
-    value = "${module.alb.alb_arn_suffix}"
+    value = "${module.ecs.alb_arn_suffix}"
 }
 
 output "alb_dns_name" {
-    value = "${module.alb.alb_dns_name}"
+    value = "${module.ecs.alb_dns_name}"
 }
 
 output "alb_zone_id" {
-    value = "${module.alb.alb_zone_id}"
+    value = "${module.ecs.alb_zone_id}"
 }
 
 output "insecure_listener_arn" {
-    value = "${module.alb.insecure_listener_arn}"
+    value = "${module.ecs.insecure_listener_arn}"
 }
 
 output "security_group_id" {
-    value = "${module.alb.security_group_id}"
+    value = "${module.ecs.security_group_id}"
 }
 
 output "security_group_name" {
-    value = "${module.alb.security_group_name}"
+    value = "${module.ecs.security_group_name}"
+}
+
+output "role_id" {
+    value = "${module.ecs.role_id}"
+    description = "ID of the role that allows for interacting with the load balancer"
+}
+
+output "cluster_arn" {
+    value = "${module.ecs.cluster_arn}"
+    description = "The Amazon Resource Name (ARN) that identifies the cluster"
 }

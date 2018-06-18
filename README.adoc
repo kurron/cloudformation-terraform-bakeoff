@@ -26,7 +26,7 @@ The first task is to create a new VPC that contains a public and private subnet 
 SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from a single ip address.  Create an autoscaling group that will ensure we always have at least one box up and running.  The autoscaling group should be configured to turn off the boxes after normal business hours.
 
 === ECS Cluster
-Create an ECS cluster using Spot Instances of type M4.large.  Install it into the private subnets.
+Create an ECS cluster using Spot Instances of type M4.large installed into the private subnets.  Create a public facing load balancer that routes traffice to the ECS work loads.  Construct the security groups so that only the Bastion boxes and load balancer can connect to the instances.  Create an autoscaling group that will ensure we always have at least 2 boxex up and running.  The autoscaling group should be configured to turn off the boxes after normal business hours.
 
 === Deploy An ECS Service
 Deploy a container so that each node in the cluster gets one instance.
