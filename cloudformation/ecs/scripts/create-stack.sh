@@ -5,7 +5,8 @@
 STACKNAME=${1:-ECS}
 PROJECTNAME=${2:-Bake-Off}
 VPC=${3:-vpc-7c194414}
-SUBNETS=${4:-subnet-755d1e1d,subnet-7efd4504,subnet-3dd43771}
+PUBLIC_SUBNETS=${4:-subnet-755d1e1d,subnet-7efd4504,subnet-3dd43771}
+PRIVATE_SUBNETS=${5:-subnet-765d1e1e,subnet-28f94152,subnet-e5d536a9}
 VISIBILITY=${6:-internet-facing}
 ENVIRONMENT=${7:-development}
 CREATOR=${8:-CloudFormation}
@@ -22,7 +23,8 @@ CREATE="aws cloudformation create-stack --stack-name $STACKNAME \
                                         --parameters ParameterKey=Project,ParameterValue=$PROJECTNAME \
                                                      ParameterKey=Environment,ParameterValue=$ENVIRONMENT \
                                                      ParameterKey=Creator,ParameterValue=$CREATOR \
-                                                     ParameterKey=Subnets,ParameterValue=\"$SUBNETS\" \
+                                                     ParameterKey=AlbSubnets,ParameterValue=\"$PUBLIC_SUBNETS\" \
+                                                     ParameterKey=Ec2Subnets,ParameterValue=\"$PRIVATE_SUBNETS\" \
                                                      ParameterKey=LoadBalancerType,ParameterValue=$VISIBILITY \
                                                      ParameterKey=VPC,ParameterValue=$VPC \
                                                      ParameterKey=BastionSecurityGroup,ParameterValue=$BASTION_SECURITY_GROUP \

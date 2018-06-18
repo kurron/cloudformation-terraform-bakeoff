@@ -31,8 +31,12 @@ Parameters:
         Type: 'String'
         Default: 'No notes'
 
-    Subnets:
-        Description: 'Which subnets the Applicaion Load Balancer should be deployed to.'
+    AlbSubnets:
+        Description: 'Which public subnets the Application Load Balancer should be deployed to.'
+        Type: List<AWS::EC2::Subnet::Id>
+
+    Ec2Subnets:
+        Description: 'Which private subnets the EC2 instances should be deployed to.'
         Type: List<AWS::EC2::Subnet::Id>
 
     VPC:
@@ -205,7 +209,7 @@ Resources:
                   Value: 'Runs ECS Agent and Docker'
                   PropagateAtLaunch: true
             VPCZoneIdentifier:
-                Ref: 'Subnets'
+                Ref: 'Ec2Subnets'
 
     # Turn off the instances after work hours
     ScheduledActionDown:
@@ -216,7 +220,7 @@ Resources:
             DesiredCapacity: 0
             MaxSize: 0
             MinSize: 0
-            Recurrence: '00 00 * * *'
+            Recurrence: '0 0 * * SUN-SAT'
 
     # Turn on the instances during work hours
     ScheduledActionUp:
@@ -227,7 +231,7 @@ Resources:
             DesiredCapacity: 4
             MaxSize: 6
             MinSize: 2
-            Recurrence: '00 12 * * *'
+            Recurrence: '0 7 * * MON-FRI'
 
     PublicLoadBalancerSecurityGroup:
         Type: AWS::EC2::SecurityGroup
@@ -271,6 +275,7 @@ Resources:
     Bucket:
         Type: 'AWS::S3::Bucket'
         Properties:
+            AccessControl: Private
             Tags:
                 - Key: 'Project'
                   Value:
@@ -325,7 +330,7 @@ Resources:
                 Ref: LoadBalancerType
             SecurityGroups: [!Ref 'PublicLoadBalancerSecurityGroup']
             Subnets:
-                Ref: Subnets
+                Ref: AlbSubnets
             Tags:
                 - Key: 'Name'
                   Value: !Ref 'AWS::StackName'
