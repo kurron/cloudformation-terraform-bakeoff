@@ -67,5 +67,10 @@ NOTE: it is possible that AWS has added AMI lookup functionality but I haven't s
 
 Compare the source of the link:terraform/bastion/main.tf[Terraform version] to the link:cloudformation/bastion/bastion.yml[CloudFormation version] and see which you prefer.
 
+=== ECS Cluster
+Creation of an ECS custer, including a public load balancer, S3 bucket holding access logs and auto-scaling groups for the EC2 instances are very similar between the tools.  One difference is that Terraform allows you to place tags on the EC2 instances that get spun up as part of the auto scaling action while CloudFormation does not, making it harder to identify instances.  Unlike the Bastion case, I was able to use a technique to lookup a the EC2 AMI to use for the cluster so we don't have to maintain an region-to-AMI mapping.  Both systems was able to use spot instances for the EC2 instances, cutting down on costs. Both systems allowed for construction of security groups so that the EC2 instances can only be accessed by the load balancer and Bastion boxes.
+
+Compare the source of the link:terraform/ecs/main.tf[Terraform version] to the link:cloudformation/ecs/ecs.yml[CloudFormation version] and see which you prefer.
+
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].

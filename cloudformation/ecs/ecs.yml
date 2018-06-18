@@ -73,17 +73,10 @@ Parameters:
         Description: 'Security Group ID used by the Bastion hosts'
         Type: AWS::EC2::SecurityGroup::Id
 
-Mappings:
-    # these AMIs change regularly.  Check http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
-    RegionToAmazonAMI:
-        us-east-1:
-            HVM64: ami-00000000
-        us-east-2:
-            HVM64: ami-956e52f0
-        us-west-1:
-            HVM64: ami-00000000
-        us-west-2:
-            HVM64: ami-00000000
+    ECSAMI:
+        Description: EC2 AMI ID, defaulting to the recommended image.
+        Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+        Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
 
 Resources:
     # Role needed by the EC2 instances so they can interact with ECS services
@@ -156,11 +149,7 @@ Resources:
             EbsOptimized: false
             IamInstanceProfile:
                 Ref: 'ECSInstanceProfile'
-            ImageId:
-                Fn::FindInMap:
-                    - RegionToAmazonAMI
-                    - Ref: 'AWS::Region'
-                    - HVM64
+            ImageId: !Ref 'ECSAMI'
             InstanceMonitoring: false
             InstanceType:
                 Ref: 'InstanceType'
