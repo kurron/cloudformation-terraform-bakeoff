@@ -1,7 +1,7 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: This template creates a new Elastic Load Balancer (ELB) into an existing VPC.
+Description: This template creates a new Elastic Container Service (ECS) cluster in an existing VPC.
 
 Metadata:
     Foo:
@@ -135,9 +135,8 @@ Resources:
                 - Key: 'idle_timeout.timeout_seconds'
                   Value: '60'
             Scheme:
-                Ref: LoadBalancerType                
-            SecurityGroups:
-                Ref: PublicLoadBalancerSecurityGroup
+                Ref: LoadBalancerType
+            SecurityGroups: [!Ref 'PublicLoadBalancerSecurityGroup']
             Subnets:
                 Ref: Subnets
             Tags:
