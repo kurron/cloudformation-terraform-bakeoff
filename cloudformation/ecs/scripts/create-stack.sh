@@ -9,7 +9,8 @@ SUBNETS=${4:-subnet-755d1e1d,subnet-7efd4504,subnet-3dd43771}
 VISIBILITY=${6:-internet-facing}
 ENVIRONMENT=${7:-development}
 CREATOR=${8:-CloudFormation}
-TEMPLATELOCATION=${9:-file://$(pwd)/ecs.yml}
+BASTION_SECURITY_GROUP=${9:-sg-ef7df285}
+TEMPLATELOCATION=${10:-file://$(pwd)/ecs.yml}
 
 VALIDATE="aws cloudformation validate-template --template-body $TEMPLATELOCATION"
 echo $VALIDATE
@@ -24,6 +25,7 @@ CREATE="aws cloudformation create-stack --stack-name $STACKNAME \
                                                      ParameterKey=Subnets,ParameterValue=\"$SUBNETS\" \
                                                      ParameterKey=LoadBalancerType,ParameterValue=$VISIBILITY \
                                                      ParameterKey=VPC,ParameterValue=$VPC \
+                                                     ParameterKey=BastionSecurityGroup,ParameterValue=$BASTION_SECURITY_GROUP \
                                         --tags Key=Project,Value=$PROJECTNAME \
                                                Key=Environment,Value=$ENVIRONMENT \
                                                Key=Creator,Value=$CREATOR"

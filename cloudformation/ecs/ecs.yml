@@ -49,7 +49,186 @@ Parameters:
         Type: String
         Default: internet-facing
 
+    SshKeyName:
+        Description: 'Name of the key to use when creating the EC2 instances'
+        Type: 'AWS::EC2::KeyPair::KeyName'
+        ConstraintDescription: must be the name of an existing EC2 KeyPair.
+        Default: 'BakeOff'
+
+    InstanceType:
+        Description: 'How large of a box to run your containers on'
+        Type: 'String'
+        Default: 'm4.large'
+
+    SpotPrice:
+        Description: 'Maximum bid price to place on your EC2 instances'
+        Type: 'String'
+        Default: '0.1000'
+
+    BastionSecurityGroup:
+        Description: 'Security Group ID used by the Bastion hosts'
+        Type: AWS::EC2::SecurityGroup::Id
+
+Mappings:
+    # these AMIs change regularly.  Check http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
+    RegionToAmazonAMI:
+        us-east-1:
+            HVM64: ami-00000000
+        us-east-2:
+            HVM64: ami-956e52f0
+        us-west-1:
+            HVM64: ami-00000000
+        us-west-2:
+            HVM64: ami-00000000
+
 Resources:
+    # Role needed by the EC2 instances so they can interact with ECS services
+    AmazonEC2ContainerServiceForEC2Role:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                -
+                    Sid: ""
+                    Effect: "Allow"
+                    Principal:
+                        Service:
+                        - "ec2.amazonaws.com"
+                    Action:
+                    - "sts:AssumeRole"
+            Path: '/'
+            Policies:
+            -
+                PolicyName: "EC2CanContactECSRole"
+                PolicyDocument:
+                    Statement:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "ec2:*"
+                            - "ecs:CreateCluster"
+                            - "ecs:DeregisterContainerInstance"
+                            - "ecs:DiscoverPollEndpoint"
+                            - "ecs:Poll"
+                            - "ecs:RegisterContainerInstance"
+                            - "ecs:StartTelemetrySession"
+                            - "ecs:Submit*"
+                            - "ecr:GetAuthorizationToken"
+                            - "ecr:BatchCheckLayerAvailability"
+                            - "ecr:GetDownloadUrlForLayer"
+                            - "ecr:BatchGetImage"
+                            - "logs:CreateLogStream"
+                            - "logs:PutLogEvents"
+                            - "xray:*"
+                        Resource: "*"
+
+    # EC2 instances will run using this profile
+    ECSInstanceProfile:
+        Type: "AWS::IAM::InstanceProfile"
+        Properties:
+            Path: "/"
+            Roles:
+            -
+                Ref: "AmazonEC2ContainerServiceForEC2Role"
+
+    # Create the cluster
+    Cluster:
+        Type: 'AWS::ECS::Cluster'
+        Properties:
+            # cluster names must adhere to this expression: ^[a-zA-Z0-9\-_]{1,255}$
+            ClusterName:
+                Ref: 'AWS::StackName'
+
+    CloudWatchLogsGroup:
+        Type: AWS::Logs::LogGroup
+        Properties:
+            LogGroupName:
+                Ref: 'AWS::StackName'
+            RetentionInDays: 7
+
+    EcsLaunchConfiguration:
+        Type: AWS::AutoScaling::LaunchConfiguration
+        Properties:
+            EbsOptimized: false
+            IamInstanceProfile:
+                Ref: 'ECSInstanceProfile'
+            ImageId:
+                Fn::FindInMap:
+                    - RegionToAmazonAMI
+                    - Ref: 'AWS::Region'
+                    - HVM64
+            InstanceMonitoring: false
+            InstanceType:
+                Ref: 'InstanceType'
+            KeyName:
+                Ref: 'SshKeyName'
+            SecurityGroups: [!Ref 'EcsHostSecurityGroup']
+            SpotPrice:
+                Ref: SpotPrice
+            UserData:
+                Fn::Base64: !Sub |
+                    #!/bin/bash -xe
+                    echo ECS_CLUSTER=${Cluster} >> /etc/ecs/ecs.config
+
+    # auto scaling group for the ECS servers
+    EcsAutoScalingGroup:
+        Type: AWS::AutoScaling::AutoScalingGroup
+        Properties:
+            Cooldown: '120'
+            DesiredCapacity: '4'
+            HealthCheckType: 'EC2'
+            LaunchConfigurationName:
+                Ref: 'EcsLaunchConfiguration'
+            MaxSize: '6'
+            MinSize: '2'
+            Tags:
+                - Key: 'Name'
+                  Value:
+                      'Fn::Join': [ ':', [ 'ECS', !Ref 'AWS::StackName' ] ]
+                  PropagateAtLaunch: true
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                  PropagateAtLaunch: true
+                - Key: 'Purpose'
+                  Value: 'Docker Engine'
+                  PropagateAtLaunch: true
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                  PropagateAtLaunch: true
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                  PropagateAtLaunch: true
+                - Key: 'Freetext'
+                  Value: 'Runs ECS Agent and Docker'
+                  PropagateAtLaunch: true
+            VPCZoneIdentifier:
+                Ref: 'Subnets'
+
+    # Turn off the instances after work hours
+    ScheduledActionDown:
+        Type: AWS::AutoScaling::ScheduledAction
+        Properties:
+            AutoScalingGroupName:
+                Ref: EcsAutoScalingGroup
+            DesiredCapacity: 0
+            MaxSize: 0
+            MinSize: 0
+            Recurrence: '00 00 * * *'
+
+    # Turn on the instances during work hours
+    ScheduledActionUp:
+        Type: AWS::AutoScaling::ScheduledAction
+        Properties:
+            AutoScalingGroupName:
+                Ref: EcsAutoScalingGroup
+            DesiredCapacity: 4
+            MaxSize: 6
+            MinSize: 2
+            Recurrence: '00 12 * * *'
+
     PublicLoadBalancerSecurityGroup:
         Type: AWS::EC2::SecurityGroup
         Properties:
@@ -80,6 +259,14 @@ Resources:
             GroupId: !Ref 'EcsHostSecurityGroup'
             IpProtocol: -1
             SourceSecurityGroupId: !Ref 'EcsHostSecurityGroup'
+
+    EcsSecurityGroupIngressFromBastion:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            Description: Ingress from Bastion instances
+            GroupId: !Ref 'EcsHostSecurityGroup'
+            IpProtocol: -1
+            SourceSecurityGroupId: !Ref 'BastionSecurityGroup'
 
     Bucket:
         Type: 'AWS::S3::Bucket'
@@ -232,3 +419,13 @@ Outputs:
     LogBucketDomainName:
         Description: The domain name of the S3 bucket where access logs get written to
         Value: !GetAtt Bucket.DomainName
+
+    Cluster:
+        Description: 'EC2 Container Service Cluster ID'
+        Value:
+            Ref: 'Cluster'
+
+    LogGroup:
+        Description: 'The CloudWatch Logs log group that ECS services should send their logs to'
+        Value:
+            Ref: 'CloudWatchLogsGroup'
