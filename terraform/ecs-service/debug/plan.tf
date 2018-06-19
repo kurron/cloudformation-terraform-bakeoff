@@ -57,7 +57,7 @@ data "template_file" "task_definition" {
 }
 
 resource "aws_ecs_task_definition" "definition" {
-    family                = "Nginx"
+    family                = "spring-cloud-echo"
     container_definitions = "${data.template_file.task_definition.rendered}"
     network_mode          = "bridge"
 }
@@ -75,7 +75,7 @@ module "ecs_service" {
 
     enable_stickiness              = "Yes"
     health_check_interval          = "15"
-    health_check_path              = "/"
+    health_check_path              = "/alpha/operations/health"
     health_check_timeout           = "5"
     health_check_healthy_threshold = "5"
     unhealthy_threshold            = "2"
@@ -91,8 +91,8 @@ module "ecs_service" {
     cluster_arn                        = "${data.terraform_remote_state.ecs_cluster.cluster_arn}"
     deployment_maximum_percent         = "200"
     deployment_minimum_healthy_percent = "50"
-    container_name                     = "Nginx"
-    container_port                     = "80"
+    container_name                     = "spring-cloud-echo"
+    container_port                     = "8080"
     container_protocol                 = "HTTP"
     iam_role                           = "${data.terraform_remote_state.ecs_cluster.role_id}"
 

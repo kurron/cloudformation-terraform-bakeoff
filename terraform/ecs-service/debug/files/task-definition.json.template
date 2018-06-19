@@ -1,18 +1,24 @@
 [
     {
-        "name": "Nginx",
-        "image": "nginx:latest",
+        "name": "spring-cloud-echo",
+        "image": "kurron/spring-cloud-aws-echo:latest",
         "cpu": 256,
-        "memory": 128,
+        "memory": 256,
         "portMappings": [
             {
-                "containerPort": 80,
+                "containerPort": 8080,
                 "hostPort": 0,
                 "protocol": "tcp"
             }
         ],
+        "environment": [
+            {
+                "name": "server_context-path",
+                "value": "/alpha"
+            }
+        ],
         "essential": true,
-        "hostname": "nginx",
+        "hostname": "spring-cloud",
         "disableNetworking": false,
         "logConfiguration": {
             "logDriver": "awslogs",
