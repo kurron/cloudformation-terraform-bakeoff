@@ -72,5 +72,69 @@ Creation of an ECS custer, including a public load balancer, S3 bucket holding a
 
 Compare the source of the link:terraform/ecs/main.tf[Terraform version] to the link:cloudformation/ecs/ecs.yml[CloudFormation version] and see which you prefer.
 
+=== Deploy An ECS Service
+Running a container on ECS is very similar between the two systems but Terraform does provide one interesting feature: templating.  When describing the task to be run in Terraform, you hand it a JSON descriptor.  Some of the values in the descriptor need to match what is specified in the module itself, otherwise things will not deploy properly.  Here is an example of the descriptor where I paramterized the CloudWatch Log Group to use when sending logs.  In a production system, I would have parameterized more, such as ports, paths and memory values.
+
+```JSON
+[
+    {
+        "name": "spring-cloud-echo",
+        "image": "kurron/spring-cloud-aws-echo:latest",
+        "cpu": 256,
+        "memory": 256,
+        "portMappings": [
+            {
+                "containerPort": 8080,
+                "hostPort": 0,
+                "protocol": "tcp"
+            }
+        ],
+        "environment": [
+            {
+                "name": "server_context-path",
+                "value": "/alpha"
+            }
+        ],
+        "essential": true,
+        "hostname": "spring-cloud",
+        "disableNetworking": false,
+        "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+                "awslogs-region": "${region}",
+                "awslogs-group": "${log_group}"
+            }
+        }
+    }
+]
+```
+
+In CloudFormation, I didn't use a separate descriptor and did everything inline:
+
+```yml
+Service:
+    Type: 'AWS::ECS::Service'
+    DependsOn: ListenerRule
+    Properties:
+        Cluster:
+            Ref: Cluster
+        DesiredCount:
+            Ref: DesiredCount
+        LoadBalancers:
+            - ContainerName:
+                  Ref: ContainerName
+              ContainerPort:
+                  Ref: ContainerPort
+              TargetGroupArn:
+                  Ref: PublicTargetGroup
+        Role:
+            Ref: AWS::NoValue
+        TaskDefinition:
+            Ref: TaskDefinition
+```
+I bring up templating only to note that CloudFormation does not appear to have the capability, but it could be that they don't ever expect you to need it.
+
+Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/service.yml[CloudFormation version] and see which you prefer.
+
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
