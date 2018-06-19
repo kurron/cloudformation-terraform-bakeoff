@@ -1,0 +1,286 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: This template creates a new EC2 Container Service (ECS) into an existing cluster.
+
+Metadata:
+    Foo:
+        Description: 'something clever'
+    Bar:
+        Description: 'something clever'
+
+# These show up in the console and are expected to be provided by the operator
+Parameters:
+    Project:
+        Description: 'Project name this cluster is has been created for'
+        Type: 'String'
+        Default: 'Bake-Off'
+
+    Creator:
+        Description: 'Tool or person creating this cluster'
+        Type: 'String'
+        Default: 'CloudFormation'
+
+    Environment:
+        Description: 'Context the cluster will be used in.  Common values are production, testing and development.'
+        Type: 'String'
+        Default: 'development'
+
+    Notes:
+        Description: 'Notes to apply, normally edited in the console.'
+        Type: 'String'
+        Default: 'No notes'
+
+    VPC:
+        Description: The VPC that the ECS cluster is deployed to
+        Type: AWS::EC2::VPC::Id
+
+    Cluster:
+        Description: The ECS Cluster ID that this service should run on
+        Type: String
+
+    DesiredCount:
+        Description: How many instances of this task should we run across our cluster?
+        Type: Number
+        Default: 4
+
+    Listener:
+        Description: The ARN of the Application Load Balancer Listener to register with
+        Type: String
+
+    Path:
+        Description: The path to register with the Application Load Balancer
+        Type: String
+        Default: '/echo'
+
+    HealthCheckPath:
+        Description: The path on the container side that is used to verify health. Will be joined with the Path so leave off beginning slash.
+        Type: String
+        Default: 'operations/health'
+
+    HealthCheckProtocol:
+        Description: The protocol on the container side that is used to verify health
+        Type: String
+        Default: 'HTTP'
+
+    LoadBalancerProtocol:
+        Description: The protocol on the ELB side to use
+        Type: String
+        Default: 'HTTP'
+
+    LoadBalancerPort:
+        Description: The port on the ELB side to use
+        Type: Number
+        Default: 80
+
+    ListenerPriority:
+        Description: Where in the ELB listener chain this mapping should be ranked
+        Type: Number
+        Default: 1
+
+    DockerImage:
+        Description: The Docker image to pull down and launch
+        Type: String
+        Default: 'kurron/spring-cloud-aws-echo:latest'
+
+    ContainerPort:
+        Description: The port that the Docker container exposes
+        Type: Number
+        Default: 8080
+
+    ContainerMemory:
+        Description: How many megabytes of RAM to limit the container to
+        Type: Number
+        Default: 256
+
+    ContainerName:
+        Description: The name of the container when it is launched
+        Type: String
+        Default: 'echo'
+
+    ServiceFamily:
+        Description: The logical group that versions of this service belongs
+        Type: String
+        Default: 'echo'
+
+    LogGroup:
+        Description: The CloudWatch Log Group to send the container logs to
+        Type: String
+
+Resources:
+    ContainerLogGroup:
+        Type: "AWS::Logs::LogGroup"
+        Properties:
+            LogGroupName:
+              Ref: LogGroup
+            RetentionInDays: 7
+
+    PublicTargetGroup:
+        Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+        Properties:
+            HealthCheckIntervalSeconds: 10
+            HealthCheckPath: !Join [ '/', [ !Ref 'Path', !Ref 'HealthCheckPath' ] ]
+            HealthCheckPort: 'traffic-port'
+            HealthCheckProtocol:
+                Ref: HealthCheckProtocol
+            HealthCheckTimeoutSeconds: 5
+            HealthyThresholdCount: 3
+            Matcher:
+                HttpCode: '200-299'
+            Port:
+                Ref: LoadBalancerPort
+            Protocol:
+                Ref: LoadBalancerProtocol
+            Tags:
+                - Key: 'Name'
+                  Value:
+                      'Fn::Join': [ '-', [ 'Public', 'Default', !Ref 'AWS::StackName' ] ]
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'ELB to Service Mapping'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value: 'No notes'
+            UnhealthyThresholdCount: 3
+            VpcId:
+                Ref: VPC
+
+    ListenerRule:
+        Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+        Properties:
+            Actions:
+                - TargetGroupArn:
+                      Ref: PublicTargetGroup
+                  Type: forward
+            Conditions:
+                - Field: path-pattern
+                  Values:
+                      - !Join [ '/', [ !Ref 'Path', '*' ] ]
+            ListenerArn:
+                Ref: Listener
+            Priority:
+                Ref: ListenerPriority
+
+    Service:
+        Type: 'AWS::ECS::Service'
+        DependsOn: ListenerRule
+        Properties:
+            Cluster:
+                Ref: Cluster
+            DesiredCount:
+                Ref: DesiredCount
+            LoadBalancers:
+                - ContainerName:
+                      Ref: ContainerName
+                  ContainerPort:
+                      Ref: ContainerPort
+                  TargetGroupArn:
+                      Ref: PublicTargetGroup
+            Role:
+                Ref: AWS::NoValue
+            TaskDefinition:
+                Ref: TaskDefinition
+
+    # hard coding /operations is a complete hack!
+    TaskDefinition:
+        Type: 'AWS::ECS::TaskDefinition'
+        Properties:
+            ContainerDefinitions:
+                - Name:
+                      Ref: ContainerName
+                  Environment:
+                      - Name: server_context-path
+                        Value: !Ref Path
+                      - Name: management_context-path
+                        Value: '/operations'
+                  Essential: true
+                  Image:
+                      Ref: DockerImage
+                  LogConfiguration:
+                    LogDriver: awslogs
+                    Options:
+                        awslogs-group:
+                            Ref: ContainerLogGroup
+                        awslogs-region:
+                            Ref: AWS::Region
+                  Memory:
+                      Ref: ContainerMemory
+                  PortMappings:
+                    - ContainerPort:
+                        Ref: ContainerPort
+            Family:
+                Ref: ServiceFamily
+            TaskRoleArn:
+                Ref: AWS::NoValue
+
+    # This IAM Role grants the service access to register/unregister with the
+    # Application Load Balancer (ALB). It is based on the default documented here:
+    # http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service_IAM_role.html
+    ServiceRole:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                -
+                    Sid: ""
+                    Effect: "Allow"
+                    Principal:
+                        Service:
+                        - "ecs.amazonaws.com"
+                    Action:
+                    - "sts:AssumeRole"
+            Path: '/'
+            Policies:
+            -
+                PolicyName: !Sub ecs-service-${AWS::StackName}
+                PolicyDocument:
+                    Statement:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "ec2:AuthorizeSecurityGroupIngress"
+                            - "ec2:Describe*"
+                            - "elasticloadbalancing:DeregisterInstancesFromLoadBalancer"
+                            - "elasticloadbalancing:DeregisterTargets"
+                            - "elasticloadbalancing:Describe*"
+                            - "elasticloadbalancing:RegisterInstancesWithLoadBalancer"
+                            - "elasticloadbalancing:RegisterTargets"
+                        Resource: "*"
+
+    # need to give the container X-Ray rights
+    TaskRole:
+        Type: 'AWS::IAM::Role'
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                -
+                    Sid: ""
+                    Effect: "Allow"
+                    Principal:
+                        Service:
+                        - "ecs.amazonaws.com"
+                    Action:
+                    - "sts:AssumeRole"
+            Path: '/'
+            Policies:
+            -
+                PolicyName: !Sub ecs-task-${AWS::StackName}
+                PolicyDocument:
+                    Statement:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "xray:*"
+                        Resource: "*"
+
+Outputs:
+    Service:
+        Description: 'EC2 Container Service ID'
+        Value:
+            Ref: 'Service'

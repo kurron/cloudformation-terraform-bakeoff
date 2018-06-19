@@ -423,3 +423,10 @@ Outputs:
         Description: 'The CloudWatch Logs log group that ECS services should send their logs to'
         Value:
             Ref: 'CloudWatchLogsGroup'
+
+    RoleID:
+        Description: 'The role that can interact with the load balancer, adding and removing conainers.'
+        Value:
+            Fn::GetAtt:
+                - AmazonEC2ContainerServiceForEC2Role
+                - RoleId
