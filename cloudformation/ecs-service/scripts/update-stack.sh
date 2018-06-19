@@ -6,10 +6,10 @@ STACK_ARN=${1:-arn:aws:cloudformation:us-east-2:387188308760:stack/ECS-Service/8
 CHANGE_SET_NAME=${2:-Scale-Up}
 DESIRED_COUNT=${3:-3}
 
-# aws cloudformation create-change-set --stack-name arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/1a2345b6-0000-00a0-a123-00abc0abc000 --change-set-name SampleChangeSet --use-previous-template --parameters ParameterKey="InstanceType",UsePreviousValue=true ParameterKey="KeyPairName",UsePreviousValue=true ParameterKey="Purpose",ParameterValue="production" 
+# aws cloudformation create-change-set --stack-name arn:aws:cloudformation:us-east-1:123456789012:stack/SampleStack/1a2345b6-0000-00a0-a123-00abc0abc000 --change-set-name SampleChangeSet --use-previous-template --parameters ParameterKey="InstanceType",UsePreviousValue=true ParameterKey="KeyPairName",UsePreviousValue=true ParameterKey="Purpose",ParameterValue="production"
 
 CREATE="aws cloudformation create-change-set --stack-name $STACK_ARN \
-	                                     --change-set-name $CHANGE_SET_NAME \
+      	                                     --change-set-name $CHANGE_SET_NAME \
                                              --use-previous-template \
 					     --parameters ParameterKey=DesiredCount,ParameterValue=$DESIRED_COUNT \
 					                  ParameterKey=Project,UsePreviousValue=true \
@@ -42,4 +42,3 @@ $VIEW
 EXECUTE="aws cloudformation execute-change-set --stack-name $STACK_ARN --change-set-name $CHANGE_SET_NAME"
 echo $EXECUTE
 $EXECUTE
-

@@ -32,7 +32,7 @@ Create an ECS cluster using Spot Instances of type M4.large installed into the p
 Deploy a container so that each node in the cluster gets one instance.
 
 === Update The ECS Service
-Update a new version of the container with different environment values.
+Change the number of desired containers instances up or down by 1.
 
 == Prerequisites
 
@@ -135,6 +135,38 @@ Service:
 NOTE: I bring up templating only to note that CloudFormation does not appear to have the capability, but it could be that they don't ever expect you to need it.
 
 Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/service.yml[CloudFormation version] and see which you prefer.
+
+=== Update The ECS Service
+You can update a CloudFormation stack using a Change Set.  A change set is a description of how you want the stack to look and can be reviewed prior to application.  The most convenient manipulation of a change set is done via the AWS console but obviously cannot be automated. When automation is desired, the AWS CLI has to be used.  The CLI form, unfortunately, is more cumbersome because all parameters to the stack must be provided otherwise default values are used.  In the example below, only the `DesireCount` paramater is being changes but the other 19 parameters must also be referenced or you run the risk of changing the stack in unintended ways.
+
+```bash
+CREATE="aws cloudformation create-change-set --stack-name $STACK_ARN \
+      	                                     --change-set-name $CHANGE_SET_NAME \
+                                             --use-previous-template \
+					     --parameters ParameterKey=DesiredCount,ParameterValue=$DESIRED_COUNT \
+					                  ParameterKey=Project,UsePreviousValue=true \
+					                  ParameterKey=Creator,UsePreviousValue=true \
+					                  ParameterKey=Environment,UsePreviousValue=true \
+					                  ParameterKey=Notes,UsePreviousValue=true \
+					                  ParameterKey=VPC,UsePreviousValue=true \
+					                  ParameterKey=Cluster,UsePreviousValue=true \
+					                  ParameterKey=Listener,UsePreviousValue=true \
+					                  ParameterKey=Path,UsePreviousValue=true \
+					                  ParameterKey=HealthCheckPath,UsePreviousValue=true \
+					                  ParameterKey=HealthCheckProtocol,UsePreviousValue=true \
+					                  ParameterKey=LoadBalancerProtocol,UsePreviousValue=true \
+					                  ParameterKey=LoadBalancerPort,UsePreviousValue=true \
+					                  ParameterKey=ListenerPriority,UsePreviousValue=true \
+					                  ParameterKey=DockerImage,UsePreviousValue=true \
+					                  ParameterKey=ContainerPort,UsePreviousValue=true \
+					                  ParameterKey=ContainerMemory,UsePreviousValue=true \
+					                  ParameterKey=ContainerName,UsePreviousValue=true \
+					                  ParameterKey=ServiceFamily,UsePreviousValue=true \
+					                  ParameterKey=LogGroup,UsePreviousValue=true"
+```
+
+
+Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
