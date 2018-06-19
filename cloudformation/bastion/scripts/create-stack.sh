@@ -6,9 +6,9 @@ STACKNAME=${1:-Bastion}
 PROJECTNAME=${2:-BakeOff}
 ENVIRONMENT=${3:-development}
 CREATOR=${4:-CloudFormation}
-CIDR=${5:-98.216.147.13/32}
-VPC=${6:-vpc-7c194414}
-SUBNETS=${7:-subnet-755d1e1d,subnet-7efd4504,subnet-3dd43771}
+CIDR=${5:-50.235.141.198/32}
+VPC=${6:-vpc-7fc69a17}
+SUBNETS=${7:-subnet-28b9fb40,subnet-70a3180a,subnet-d716f49b}
 TEMPLATELOCATION=${8:-file://$(pwd)/bastion.yml}
 
 VALIDATE="aws cloudformation validate-template --template-body $TEMPLATELOCATION"
