@@ -132,7 +132,7 @@ Service:
         TaskDefinition:
             Ref: TaskDefinition
 ```
-I bring up templating only to note that CloudFormation does not appear to have the capability, but it could be that they don't ever expect you to need it.
+NOTE: I bring up templating only to note that CloudFormation does not appear to have the capability, but it could be that they don't ever expect you to need it.
 
 Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/service.yml[CloudFormation version] and see which you prefer.
 
