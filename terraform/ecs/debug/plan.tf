@@ -56,7 +56,7 @@ module "ecs" {
     health_check_grace_period        = "300"
     ecs_subnet_ids                   = "${data.terraform_remote_state.vpc.private_subnet_ids}"
     scale_down_cron                  = "0 0 * * SUN-SAT"
-    scale_up_cron                    = "0 7 * * MON-FRI"
+    scale_up_cron                    = "0 8 * * MON-FRI"
     cluster_scaled_down_min_size     = "0"
     cluster_scaled_down_desired_size = "0"
     cluster_scaled_down_max_size     = "0"

@@ -137,7 +137,7 @@ NOTE: I bring up templating only to note that CloudFormation does not appear to 
 Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/service.yml[CloudFormation version] and see which you prefer.
 
 === Update The ECS Service
-You can update a CloudFormation stack using a Change Set.  A change set is a description of how you want the stack to look and can be reviewed prior to application.  The most convenient manipulation of a change set is done via the AWS console but obviously cannot be automated. When automation is desired, the AWS CLI has to be used.  The CLI form, unfortunately, is more cumbersome because all parameters to the stack must be provided otherwise default values are used.  In the example below, only the `DesireCount` paramater is being changes but the other 19 parameters must also be referenced or you run the risk of changing the stack in unintended ways.
+You can update a CloudFormation stack using a Change Set.  A change set is a description of how you want the stack to look and can be reviewed prior to application.  The most convenient manipulation of a change set is done via the AWS console but obviously cannot be automated. When automation is desired, the AWS CLI has to be used.  The CLI form, unfortunately, is more cumbersome because all parameters to the stack must be provided otherwise default values are used.  In the example below, only the `DesireCount` paramater is being changed but the other 19 parameters must also be referenced or you run the risk of changing the stack in unintended ways.
 
 ```bash
 CREATE="aws cloudformation create-change-set --stack-name $STACK_ARN \
@@ -164,9 +164,23 @@ CREATE="aws cloudformation create-change-set --stack-name $STACK_ARN \
 					                  ParameterKey=ServiceFamily,UsePreviousValue=true \
 					                  ParameterKey=LogGroup,UsePreviousValue=true"
 ```
+Terraform is more straight forward. All you do is edit the Terraform plan in-place, review the changes and then apply them.  Here is the output from bumping up the number of ECS container instances from 2 to 3:
+
+```
+terraform show debug/proposed-changes.plan
+  ~ module.ecs_service.aws_ecs_service.service
+      desired_count: "2" => "3"
 
 
-Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
+terraform apply -refresh=true -lock=true -auto-approve=true -input=false debug/proposed-changes.plan
+module.ecs_service.aws_ecs_service.service: Modifying... (ID: arn:aws:ecs:us-east-2:387188308760:service/Terraform)
+  desired_count: "2" => "3"
+module.ecs_service.aws_ecs_service.service: Modifications complete after 0s (ID: arn:aws:ecs:us-east-2:387188308760:service/Terraform)
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+```
+
+Compare the source of the link:terraform/ecs-service/debug/plan.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].

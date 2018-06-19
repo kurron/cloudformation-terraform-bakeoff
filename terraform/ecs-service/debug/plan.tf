@@ -87,7 +87,7 @@ module "ecs_service" {
     insecure_listener_arn          = "${data.terraform_remote_state.ecs_cluster.insecure_listener_arn}"
 
     task_definition_arn                = "${aws_ecs_task_definition.definition.arn}"
-    desired_count                      = "2"
+    desired_count                      = "3"
     cluster_arn                        = "${data.terraform_remote_state.ecs_cluster.cluster_arn}"
     deployment_maximum_percent         = "200"
     deployment_minimum_healthy_percent = "50"
