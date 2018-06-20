@@ -1,0 +1,71 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: This template creates the full stack of services created piece meal in the other modules.
+
+Metadata:
+    Foo:
+        Description: 'something clever'
+    Bar:
+        Description: 'something clever'
+
+# These show up in the console and are expected to be provided by the operator
+Parameters:
+    Project:
+        Description: 'Project name this stack is being created for'
+        Type: 'String'
+        Default: 'Bake Off'
+
+    Creator:
+        Description: 'Tool or person creating this cluster'
+        Type: 'String'
+        Default: 'CloudFormation'
+
+    Environment:
+        Description: 'Context the cluster will be used in.  Common values are production, testing and development.'
+        Type: 'String'
+        Default: 'development'
+
+    Notes:
+        Description: 'Notes to apply, normally edited in the console.'
+        Type: 'String'
+        Default: 'Show casing the differences between CloudFormation and Terraform.'
+
+#### VPC stuff
+    VpcURL:
+        Description: 'Location of the VPC template file'
+        Type: 'String'
+        Default: 'https://s3.us-east-2.amazonaws.com/com-jvmguy-cloudformation-templates/vpc/vpc.yml'
+
+    VpcName:
+        Description: 'Name of the VPC'
+        Type: 'String'
+        Default: 'Bake Off'
+
+    SshKeyName:
+        Description: 'Name of the key to use when creating the EC2 instances'
+        Type: 'String'
+        Default: 'BakeOff'
+
+    Network:
+        Description: 'The ip range to use when building out the VPC network'
+        Type: 'String'
+        Default: '10.0.0.0'
+
+Resources:
+    VPC:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL:
+                Ref: VpcURL
+            Parameters:
+                Project:
+                    Ref: Project
+                Creator:
+                    Ref: Creator
+                Environment:
+                    Ref: Environment
+                Notes:
+                    Ref: Notes
+                Name:
+                    Ref: VpcName

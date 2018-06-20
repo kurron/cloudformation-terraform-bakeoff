@@ -188,6 +188,8 @@ Compare the source of the link:terraform/ecs-service/debug/plan.tf[Terraform ver
 === Create the entire stack using modules
 Terraform has good story for this one. In fact, there is the https://registry.terraform.io/[Terraform Module Registry] where the community can share "recipes" for assembling different pieces of infrastructure.  The Terraform code we've used so far have been expressed in terms of modules so assembling them into a single file is straight forward.
 
+CloudFormation has the notion of "nested stacks" where a master file imports and invokes the child modules.  Unlike Terraform, there isn't a registry of community modules.  All the files have to live in S3, which makes deployments a little less convenient and requires an additional step to continually move files from source control into a bucket.
+
 Compare the source of the link:terraform/composability/debug/plan.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
 
 == License and Credits
