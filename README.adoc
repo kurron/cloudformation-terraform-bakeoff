@@ -34,6 +34,9 @@ Deploy a container so that each node in the cluster gets one instance.
 === Update The ECS Service
 Change the number of desired containers instances up or down by 1.
 
+=== Create the entire stack using modules
+Normally, you don't want to define your entire stack in a single file.  Instead, you want to compose the stack out of smaller modules which have already been tested.  Create the entire stack using a modular approach.
+
 == Prerequisites
 
 * an https://aws.amazon.com/[AWS] account
@@ -181,6 +184,11 @@ Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
 ```
 
 Compare the source of the link:terraform/ecs-service/debug/plan.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
+
+=== Create the entire stack using modules
+Terraform has good story for this one. In fact, there is the https://registry.terraform.io/[Terraform Module Registry] where the community can share "recipes" for assembling different pieces of infrastructure.  The Terraform code we've used so far have been expressed in terms of modules so assembling them into a single file is straight forward.
+
+Compare the source of the link:terraform/composability/debug/plan.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
