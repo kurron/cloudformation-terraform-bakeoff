@@ -22,7 +22,7 @@ Parameters:
         Default: 'CloudFormation'
 
     Environment:
-        Description: 'Context the cluster will be used in.  Common values are production, testing and development.'
+        Description: 'Context the resources will be used in.  Common values are production, testing and development.'
         Type: 'String'
         Default: 'development'
 
@@ -79,6 +79,38 @@ Parameters:
         Type: 'String'
         Default: '0 0 * * SUN-SAT'
 
+#### ECS stuff
+    ECSURL:
+        Description: 'Location of the ECS template file'
+        Type: 'String'
+        Default: 'https://s3.us-east-2.amazonaws.com/com-jvmguy-cloudformation-templates/ecs/ecs.yml'
+
+    LoadBalancerPort:
+        Description: The port the load balancer should listen on
+        Type: Number
+        Default: 80
+
+    LoadBalancerType:
+        Description: Define if the balancer is an external or internal balancer (internet-facing or internal)
+        Type: String
+        Default: internet-facing
+
+    SshKeyName:
+        Description: 'Name of the key to use when creating the EC2 instances'
+        Type: 'AWS::EC2::KeyPair::KeyName'
+        ConstraintDescription: must be the name of an existing EC2 KeyPair.
+        Default: 'BakeOff'
+
+    InstanceType:
+        Description: 'How large of a box to run your containers on'
+        Type: 'String'
+        Default: 'm4.large'
+
+    SpotPrice:
+        Description: 'Maximum bid price to place on your EC2 instances'
+        Type: 'String'
+        Default: '0.1000'
+
 Resources:
     VPC:
         Type: AWS::CloudFormation::Stack
@@ -127,3 +159,44 @@ Resources:
                     Ref: ScaleUpExpression
                 ScaleDownExpression:
                     Ref: ScaleDownExpression
+
+    ECS:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL:
+                Ref: ECSURL
+            Parameters:
+                Project:
+                    Ref: Project
+                Creator:
+                    Ref: Creator
+                Environment:
+                    Ref: Environment
+                Notes:
+                    Ref: Notes
+                AlbSubnets:
+                    Fn::GetAtt:
+                    - VPC
+                    - Outputs.PublicSubnets
+                Ec2Subnets:
+                    Fn::GetAtt:
+                    - VPC
+                    - Outputs.PrivateSubnets
+                VPC:
+                    Fn::GetAtt:
+                    - VPC
+                    - Outputs.VPC
+                LoadBalancerPort:
+                    Ref: LoadBalancerPort
+                LoadBalancerType:
+                    Ref: LoadBalancerType
+                SshKeyName:
+                    Ref: SshKeyName
+                InstanceType:
+                    Ref: InstanceType
+                SpotPrice:
+                    Ref: SpotPrice
+                BastionSecurityGroup:
+                    Fn::GetAtt:
+                    - Bastion
+                    - Outputs.BastionSecurityGroup
