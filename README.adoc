@@ -17,22 +17,22 @@ toc::[]
 This is a very unscientific comparison between https://www.terraform.io/[Terraform] and https://aws.amazon.com/cloudformation/[AWS CloudFormation].  What we'll do is to implement a couple tasks in both tools and evaluate their strengths and weaknesses.
 
 === Tagging
-Resource tagging is very important in AWS so we'll apply a common set of tags to all resources, calling out any differences in tagging support.
+Resource tagging is very important in AWS so we'll apply a common set of tags to all resources, calling out any differences in tagging support that might exist.
 
 === VPC Creation
-The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region.
+The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region, an internet gateway, route tables, elastic ips, NAT gateways and routing tables.
 
 === Bastion Box
-SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from a single ip address.  Create an autoscaling group that will ensure we always have at least one box up and running.  The autoscaling group should be configured to turn off the boxes after normal business hours.
+SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from a single ip address.  Create an auto scaling group that will ensure we always have at least one box up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The instance should be based on the currently release Amazon Linux AMI.
 
 === ECS Cluster
-Create an ECS cluster using Spot Instances of type m4.large installed into the private subnets.  Create a public facing load balancer that routes traffic to the ECS work loads.  Construct the security groups so that only the Bastion boxes and load balancer can connect to the instances.  Create an auto scaling group that will ensure we always have at least 2 boxes up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours.
+Create an ECS cluster using Spot Instances of type m4.large installed into the private subnets.  Create a public facing load balancer that routes traffic to the ECS work loads.  Construct the security groups so that only the Bastion boxes and load balancer can connect to the instances.  Create an auto scaling group that will ensure we always have at least 2 boxes up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The SSH key for the cluster should be the same one that the Bastion box uses.  The necessary IAM resources and CloudWatch Log Groups should also be created.  The log balancer's access logs should be saved in a S3 bucket that ages out the files after 1 week.
 
 === Deploy An ECS Service
-Deploy 3 containers to the ECS cluster, spreading the work load so each node gets one instance.
+Deploy 3 containers to the ECS cluster, spreading the work load so each node gets one instance.  The load balancer should be configured so that the `/echo` path gets mapped to the containers.  The load balancer should be configured to issue health checks, removing any sick containers as they are detected. RAM and CPU limits should be placed on the containers.  The containers should be configured to publish log messages to CloudWatch Logs.
 
 === Update The ECS Service
-Change the number of desired containers instances up or down by 1.
+Change the number of desired containers instances up or down by 1. The goal is to see how each tool handles changes to the infrastructure.
 
 === Create the entire stack using modules
 Normally, you don't want to define your entire stack in a single file.  Instead, you want to compose the stack out of smaller modules which have already been tested.  Create the entire stack using a modular approach.
