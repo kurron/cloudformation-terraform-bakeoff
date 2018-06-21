@@ -145,7 +145,13 @@ If you want to verify that the Bastion server is functioning correctly, follow t
 
 == Troubleshooting
 === SSH Key Permissions
-SSH is picky about permissions on key files so try `chmod 0400 BakeOff.pem` to see if that fixes the problem. 
+SSH is picky about permissions on key files so try `chmod 0400 BakeOff.pem` to see if that fixes the problem.
+
+=== Running Both Stacks
+I've found that you cannot run both stacks in the same region because you run out of elastic ips.  You can ask Amazon to increase your limit or edit the files so that different regions are used.
+
+=== Terraform Timing
+I don't think I have the resource dependencies completely defined so if you get an error about something not existing, just run the script again and it should cure itself.
 
 == Comparison
 === VPC Creation

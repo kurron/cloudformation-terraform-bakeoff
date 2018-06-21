@@ -158,13 +158,13 @@ module "ecs_service" {
 
     enable_stickiness              = "Yes"
     health_check_interval          = "15"
-    health_check_path              = "/alpha/operations/health"
+    health_check_path              = "/echo/operations/health"
     health_check_timeout           = "5"
     health_check_healthy_threshold = "5"
     unhealthy_threshold            = "2"
     matcher                        = "200-299"
 
-    path_pattern                   = "/alpha*"
+    path_pattern                   = "/echo*"
     rule_priority                  = "1"
     vpc_id                         = "${module.vpc.vpc_id}"
     insecure_listener_arn          = "${module.ecs.insecure_listener_arn}"

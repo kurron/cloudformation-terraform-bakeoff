@@ -14,7 +14,7 @@
         "environment": [
             {
                 "name": "server_context-path",
-                "value": "/alpha"
+                "value": "/echo"
             }
         ],
         "essential": true,
