@@ -1,31 +1,19 @@
 # Overview
-This Terraform module creates an ECS Service, attaching in to an ECS Cluster.
-It also constructs the ALB Target Group, binding it to the service.  The ALB
-is expected to already have a listener that can forward to the new listener,
-using path based routing.
-
-# Prerequisites
-* [Terraform](https://terraform.io/) installed and working
-* Development and testing was done on [Ubuntu Linux](http://www.ubuntu.com/)
-
-# Building
-Since this is just a collection of Terraform scripts, there is nothing to build.
-
-# Installation
-This module is not installed but, instead, is obtained by the project using
-the module.  See [kurron/terraform-environments](https://github.com/kurron/terraform-environments)
-for example usage.
+See the master README for details.
 
 # Tips and Tricks
 
-## Debugging
-The `debug` folder contains files that can be used to test out local changes
-to the module.  Edit `backend.cfg` and `plan.tf` to your liking and
-then run `debug/debug-module.sh` to test your changes.
+## Creating The Stack
+Edit `debug/backend.cfg` to point to an S3 bucket you have previously created to hold Terraform's state.  Run `debug/debug-module.sh` to execute the necessary Terraform commands to import modules and create resources.  If this module's resources are needed in a subsequent module, answer `NO` to the deletion question.
 
-# Troubleshooting
+## Modifying The Stack
+To test how modification of resources is done, simpley edit `debug/plan.tf` and change the `desired_count` parameter to a different value.
 
-# License and Credits
-This project is licensed under the [Apache License Version 2.0, January 2004](http://www.apache.org/licenses/).
+```
+task_definition_arn                = "${aws_ecs_task_definition.definition.arn}"
+desired_count                      = "3"
+cluster_arn                        = "${data.terraform_remote_state.ecs_cluster.cluster_arn}"
+```
 
-# List of Changes
+## Destroying The Stack
+Run `debug/debug-module.sh` a second time and answer `YES` to the deletion question.
