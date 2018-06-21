@@ -20,7 +20,7 @@ This is a very unscientific comparison between https://www.terraform.io/[Terrafo
 Resource tagging is very important in AWS so we'll apply a common set of tags to all resources, calling out any differences in tagging support that might exist.
 
 === VPC Creation
-The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region, an internet gateway, route tables, elastic ips, NAT gateways and routing tables.
+The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region, an internet gateway, route tables, elastic ips and NAT gateways.
 
 === Bastion Box
 SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from a single ip address.  Create an auto scaling group that will ensure we always have at least one box up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The instance should be based on the currently release Amazon Linux AMI.
@@ -41,7 +41,6 @@ Normally, you don't want to define your entire stack in a single file.  Instead,
 
 * an https://aws.amazon.com/[AWS] account
 * an SSH client
-* familiarity with https://aws.amazon.com/ec2/[EC2]
 * https://www.terraform.io/[Terraform] installed and working
 * https://aws.amazon.com/cli/[AWS CLI] installed and working
 * https://www.gnu.org/software/bash/[BASH] installed and working
@@ -57,7 +56,7 @@ export AWS_DEFAULT_REGION="us-east-2"
 There isn't anything to build for this project.
 
 == Installation
-There isn't anything to install but you will need to run the `copy-files-to-s3.sh` script prior to running the `composability` scripts.  You will have to edit `copy-files-to-s3.sh` to use a unique bucket name.
+There isn't anything to install but you will need to run the `copy-files-to-s3.sh` script prior to running the `composability` script in the `terraform` directory.  Make sure to edit `copy-files-to-s3.sh` to use a unique bucket name. Using the existing bucket name will result in failures.
 
 == Tips and Tricks
 === Terraform Scripts
@@ -90,6 +89,7 @@ module "vpc" {
 ```
 
 To actually build infrastructure, run `debug/debug-module.sh`.  The script exercises the 5 main Terraform commands:
+
 1. `terraform init`, which initializes the module by downloading any dependencies it needs
 1. `terraform plan`, which compares what you want done to what is currently in AWS
 1. `terraform show`, which is used for peer reviews so proposed changes can evaluated prior to execution
