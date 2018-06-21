@@ -39,6 +39,7 @@ Normally, you don't want to define your entire stack in a single file.  Instead,
 
 == Prerequisites
 
+* this code was developed and tested on https://www.ubuntu.com/download[Ubuntu 18.04]
 * an https://aws.amazon.com/[AWS] account
 * an SSH client
 * https://www.terraform.io/[Terraform] installed and working
@@ -124,7 +125,27 @@ The modules build upon each other and need to be created in sequence for things 
 1. ecs-service
 1. composability
 
+=== Testing The Full Stack
+If you want to verify that the entire stack has been properly created, follow these steps:
+
+1. obtain the URL for the load balancer, e.g. `Bake-LoadB-11WJPPFIMI8T6-112579361.us-east-2.elb.amazonaws.com`
+1. `curl --silent Bake-LoadB-11WJPPFIMI8T6-112579361.us-east-2.elb.amazonaws.com/echo/operations/info` to get basic information about the container. The results should vary as the load balancer bounces requests between containers.
+1. `curl --silent Bake-LoadB-11WJPPFIMI8T6-112579361.us-east-2.elb.amazonaws.com/echo/operations/health` to see the health check.
+1. `curl --silent Bake-LoadB-11WJPPFIMI8T6-112579361.us-east-2.elb.amazonaws.com/echo/` to more detailed environmental information.
+
+=== Testing SSH Access
+If you want to verify that the Bastion server is functioning correctly, follow these steps:
+
+1. `ssh-add BakeOff.pem` to import the private key
+1. `ssh-add BakeOff.pem` to verify that the import worked
+1. use the console and find the public ip of the Bastion instance, e.g. `52.14.183.138`
+1. `ssh -A ec2-user@52.14.183.138` to SSH into the jump box
+1. use the console and find the private ip to one of the EC2 instances, e.g. `10.0.60.108`
+1. `ssh 10.0.60.108` to jump to an internal box
+
 == Troubleshooting
+=== SSH Key Permissions
+SSH is picky about permissions on key files so try `chmod 0400 BakeOff.pem` to see if that fixes the problem. 
 
 == Comparison
 === VPC Creation
