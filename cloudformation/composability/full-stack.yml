@@ -111,6 +111,77 @@ Parameters:
         Type: 'String'
         Default: '0.1000'
 
+#### ECS Service stuff
+    ServiceURL:
+        Description: 'Location of the ECS Service template file'
+        Type: 'String'
+        Default: 'https://s3.us-east-2.amazonaws.com/com-jvmguy-cloudformation-templates/ecs-service/service.yml'
+
+    DesiredCount:
+        Description: How many instances of this task should we run across our cluster?
+        Type: Number
+        Default: 4
+
+    Path:
+        Description: The path to register with the Application Load Balancer
+        Type: String
+        Default: '/echo'
+
+    HealthCheckPath:
+        Description: The path on the container side that is used to verify health. Will be joined with the Path so leave off beginning slash.
+        Type: String
+        Default: 'operations/health'
+
+    HealthCheckProtocol:
+        Description: The protocol on the container side that is used to verify health
+        Type: String
+        Default: 'HTTP'
+
+    LoadBalancerProtocol:
+        Description: The protocol on the ELB side to use
+        Type: String
+        Default: 'HTTP'
+
+    LoadBalancerPort:
+        Description: The port on the ELB side to use
+        Type: Number
+        Default: 80
+
+    ListenerPriority:
+        Description: Where in the ELB listener chain this mapping should be ranked
+        Type: Number
+        Default: 1
+
+    DockerImage:
+        Description: The Docker image to pull down and launch
+        Type: String
+        Default: 'kurron/spring-cloud-aws-echo:latest'
+
+    ContainerPort:
+        Description: The port that the Docker container exposes
+        Type: Number
+        Default: 8080
+
+    ContainerMemory:
+        Description: How many megabytes of RAM to limit the container to
+        Type: Number
+        Default: 256
+
+    ContainerName:
+        Description: The name of the container when it is launched
+        Type: String
+        Default: 'echo'
+
+    ServiceFamily:
+        Description: The logical group that versions of this service belongs
+        Type: String
+        Default: 'echo'
+
+    LogGroup:
+        Description: The CloudWatch Log Group to send the container logs to
+        Type: String
+        Default: 'echo'
+
 Resources:
     VPC:
         Type: AWS::CloudFormation::Stack
@@ -200,3 +271,56 @@ Resources:
                     Fn::GetAtt:
                     - Bastion
                     - Outputs.BastionSecurityGroup
+
+    Service:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL:
+                Ref: ServiceURL
+            Parameters:
+                Project:
+                    Ref: Project
+                Creator:
+                    Ref: Creator
+                Environment:
+                    Ref: Environment
+                Notes:
+                    Ref: Notes
+                VPC:
+                    Fn::GetAtt:
+                    - VPC
+                    - Outputs.VPC
+                Cluster:
+                    Fn::GetAtt:
+                    - ECS
+                    - Outputs.Cluster
+                DesiredCount:
+                    Ref: DesiredCount
+                Listener:
+                    Fn::GetAtt:
+                    - ECS
+                    - Outputs.LoadBalancerListener
+                Path:
+                    Ref: Path
+                HealthCheckPath:
+                    Ref: HealthCheckPath
+                HealthCheckProtocol:
+                    Ref: HealthCheckProtocol
+                LoadBalancerProtocol:
+                    Ref: LoadBalancerProtocol
+                LoadBalancerPort:
+                    Ref: LoadBalancerPort
+                ListenerPriority:
+                    Ref: ListenerPriority
+                DockerImage:
+                    Ref: DockerImage
+                ContainerPort:
+                    Ref: ContainerPort
+                ContainerMemory:
+                    Ref: ContainerMemory
+                ContainerName:
+                    Ref: ContainerName
+                ServiceFamily:
+                    Ref: ServiceFamily
+                LogGroup:
+                    Ref: LogGroup

@@ -60,17 +60,9 @@ Parameters:
         Type: 'String'
         Default: '0 0 * * SUN-SAT'
 
-
-Mappings:
-    RegionToAmazonAMI:
-        us-east-1:
-            HVM64: ami-00000000
-        us-east-2:
-            HVM64: ami-922914f7
-        us-west-1:
-            HVM64: ami-00000000
-        us-west-2:
-            HVM64: ami-00000000
+    LatestAmiId :
+        Type : 'AWS::SSM::Parameter::Value'
+        Default: ‘/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2’
 
 Resources:
     # locked down the bastion servers so only inbound SSH is allowed
@@ -108,11 +100,7 @@ Resources:
         Type: AWS::AutoScaling::LaunchConfiguration
         Properties:
             EbsOptimized: false
-            ImageId:
-                Fn::FindInMap:
-                    - RegionToAmazonAMI
-                    - Ref: 'AWS::Region'
-                    - HVM64
+            ImageId : !Ref LatestAmiId
             InstanceMonitoring: false
             InstanceType: t2.nano
             KeyName:
