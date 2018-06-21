@@ -99,7 +99,7 @@ To actually build infrastructure, run `debug/debug-module.sh`.  The script exerc
 Terraform is idempotent so you can run the script several times in a row and nothing will change.
 
 === CloudFormation Scripts
-The Terraform modules all work the same so these instructions apply to all modules.  Run `scripts/validate-stack.sh` to have the stack's YAML file validated for obvious syntax errors.  `scripts/create-stack.sh` will create the stack but you probably have to edit it prior to execution in order to get the values correct.  Unlike Terraform, CloudFormation doesn't support inter-module sharing of information so you have to copy and paste ids from previous modules.  For example, assume that we've already run the `vpc` module and have an empty VPC.  We need to edit the `create-stack.sh` script in the `bastion` folder and paste in the values it needs from the VPC module.
+The CloudFormation modules all work the same so these instructions apply to all modules.  Run `scripts/validate-stack.sh` to have the stack's YAML file validated for obvious syntax errors.  `scripts/create-stack.sh` will create the stack but you probably have to edit it prior to execution in order to get the values correct.  Unlike Terraform, CloudFormation doesn't support inter-module sharing of information so you have to copy and paste ids from previous modules.  For example, assume that we've already run the `vpc` module and have an empty VPC.  We need to edit the `create-stack.sh` script in the `bastion` folder and paste in the values it needs from the VPC module.
 
 ```BASH
 STACKNAME=${1:-Bastion}
@@ -139,14 +139,12 @@ NOTE: CloudFormation does have a command-line but it simply kicks off the proces
 Compare the source of the link:terraform/vpc/main.tf[Terraform version] to the link:cloudformation/vpc/vpc.yml[CloudFormation version] and see which you prefer.
 
 === Bastion Box
-Creation of the Bastion box, complete with an auto scaling group, scheduled actions and a security group is a little easier using Terraform.  The reason for that is that https://www.terraform.io/docs/state/index.html[Terraform has a way to share state information] between modules.  This allows the VPC information I created in a previous step to be "imported" into the Bastion module.  In CloudFormation, VPC information has to be provided by the operator.  Another difference between the tools is that Terraform allows you to create a new SSH key pair but CloudFormation doesn't seem to have that support.  The operator has to create one prior via the console and feed the key pair name into CloudFormation.  A final difference is how each tool deals with AMIs.  AMIs are specific to a region and Terraform has a function that can be used to search for that region's current AMI.  In CloudFormation, we have to manage an internal map of region to AMIs, which means the list can become stale.
-
-NOTE: it is possible that AWS has added AMI lookup functionality but I haven't seen it yet.
+Creation of the Bastion box, complete with an auto scaling group, scheduled actions and a security group is a little easier using Terraform.  The reason for that is that https://www.terraform.io/docs/state/index.html[Terraform has a way to share state information] between modules.  This allows the VPC information I created in a previous step to be "imported" into the Bastion module.  In CloudFormation, VPC information has to be provided by the operator.  Another difference between the tools is that Terraform allows you to create a new SSH key pair but CloudFormation doesn't seem to have that support.  The operator has to create one prior via the console and feed the key pair name into CloudFormation.
 
 Compare the source of the link:terraform/bastion/main.tf[Terraform version] to the link:cloudformation/bastion/bastion.yml[CloudFormation version] and see which you prefer.
 
 === ECS Cluster
-Creation of an ECS custer, including a public load balancer, S3 bucket holding access logs and auto-scaling groups for the EC2 instances, are very similar between the tools.  One difference is that Terraform allows you to place tags on the EC2 instances that get spun up as part of the auto scaling action while CloudFormation does not, making it harder to identify instances.  Unlike the CloudFormation Bastion case, I was able to use a technique to lookup a the EC2 AMI to use for the cluster so we don't have to maintain an region-to-AMI mapping.  Both systems was able to use spot instances for the EC2 instances, cutting down on costs. Both systems allowed for construction of security groups so that the EC2 instances can only be accessed by the load balancer and Bastion boxes.
+Creation of an ECS custer, including a public load balancer, S3 bucket holding access logs and auto-scaling groups for the EC2 instances, are very similar between the tools.  One difference is that Terraform allows you to place tags on the EC2 instances that get spun up as part of the auto scaling action while CloudFormation does not, making it harder to identify instances.  Both systems were able to use spot instances for the EC2 boxes, cutting down on costs. Both systems allowed for construction of security groups so that the EC2 instances can only be accessed by the load balancer and Bastion boxes.
 
 Compare the source of the link:terraform/ecs/main.tf[Terraform version] to the link:cloudformation/ecs/ecs.yml[CloudFormation version] and see which you prefer.
 
@@ -190,25 +188,36 @@ Running a container on ECS is very similar between the two systems but Terraform
 In CloudFormation, I didn't use a separate descriptor and did everything inline:
 
 ```yml
-Service:
-    Type: 'AWS::ECS::Service'
-    DependsOn: ListenerRule
+TaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
     Properties:
-        Cluster:
-            Ref: Cluster
-        DesiredCount:
-            Ref: DesiredCount
-        LoadBalancers:
-            - ContainerName:
+        ContainerDefinitions:
+            - Name:
                   Ref: ContainerName
-              ContainerPort:
-                  Ref: ContainerPort
-              TargetGroupArn:
-                  Ref: PublicTargetGroup
-        Role:
+              Environment:
+                  - Name: server_context-path
+                    Value: !Ref Path
+                  - Name: management_context-path
+                    Value: '/operations'
+              Essential: true
+              Image:
+                  Ref: DockerImage
+              LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                    awslogs-group:
+                        Ref: ContainerLogGroup
+                    awslogs-region:
+                        Ref: AWS::Region
+              Memory:
+                  Ref: ContainerMemory
+              PortMappings:
+                - ContainerPort:
+                    Ref: ContainerPort
+        Family:
+            Ref: ServiceFamily
+        TaskRoleArn:
             Ref: AWS::NoValue
-        TaskDefinition:
-            Ref: TaskDefinition
 ```
 NOTE: I bring up templating only to note that CloudFormation does not appear to have the capability, but it could be that they don't ever expect you to need it.
 
