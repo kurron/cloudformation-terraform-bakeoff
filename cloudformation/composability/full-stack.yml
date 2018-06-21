@@ -52,6 +52,33 @@ Parameters:
         Type: 'String'
         Default: '10.0.0.0'
 
+#### Bastion stuff
+    BastionURL:
+        Description: 'Location of the Bastion template file'
+        Type: 'String'
+        Default: 'https://s3.us-east-2.amazonaws.com/com-jvmguy-cloudformation-templates/bastion/bastion.yml'
+
+    SshKeyName:
+        Description: 'Name of the key to use when creating the EC2 instances'
+        Type: 'AWS::EC2::KeyPair::KeyName'
+        ConstraintDescription: must be the name of an existing EC2 KeyPair.
+        Default: 'BakeOff'
+
+    SshCidr:
+        Description: 'IP range, in CIDR notation, that is allowed to SSH into the Bastion'
+        Type: 'String'
+        Default: '50.235.141.198/32'
+
+    ScaleUpExpression:
+        Description: 'Cron expression indicating when instances should be spun up.'
+        Type: 'String'
+        Default: '0 7 * * MON-FRI'
+
+    ScaleDownExpression:
+        Description: 'Cron expression indicating when instances should be spun down.'
+        Type: 'String'
+        Default: '0 0 * * SUN-SAT'
+
 Resources:
     VPC:
         Type: AWS::CloudFormation::Stack
@@ -69,3 +96,34 @@ Resources:
                     Ref: Notes
                 Name:
                     Ref: VpcName
+
+    Bastion:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL:
+                Ref: BastionURL
+            Parameters:
+                Project:
+                    Ref: Project
+                Creator:
+                    Ref: Creator
+                Environment:
+                    Ref: Environment
+                Notes:
+                    Ref: Notes
+                SshKeyName:
+                    Ref: SshKeyName
+                SshCidr:
+                    Ref: SshCidr
+                VPC:
+                    Fn::GetAtt:
+                    - VPC
+                    - Outputs.VPC
+                PublicSubnets:
+                    Fn::GetAtt:
+                    - VPC
+                    - Outputs.PublicSubnets
+                ScaleUpExpression:
+                    Ref: ScaleUpExpression
+                ScaleDownExpression:
+                    Ref: ScaleDownExpression
