@@ -1,5 +1,5 @@
 # Overview
-See ../../README.ado[master README] for details.
+See link:../../README.ado[master README] for details.
 
 # Tips and Tricks
 
