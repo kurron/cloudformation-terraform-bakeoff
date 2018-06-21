@@ -1,26 +1,10 @@
 # Overview
-This Terraform module creates an auto-scaling group that ensures at least
-one Bastion instance is always available.  The Bastion only allows SSH traffic
-from the provided CIDR ranges.  The auto-scaling group is set start and
-stop instances on a schedule.
-
-# Prerequisites
-* [Terraform](https://terraform.io/) installed and working
-* Development and testing was done on [Ubuntu Linux](http://www.ubuntu.com/)
-
-# Building
-Since this is just a collection of Terraform scripts, there is nothing to build.
-
-# Installation
-This module is not installed but, instead, is obtained by the project using
-the module.  See [kurron/terraform-environments](https://github.com/kurron/terraform-environments)
-for example usage.
+See the master README for details.
 
 # Tips and Tricks
 
-# Troubleshooting
+## Creating The Stack
+Edit `debug/backend.cfg` to point to an S3 bucket you have previously created to hold Terraform's state.  Run `debug/debug-module.sh` to execute the necessary Terraform commands to import modules and create resources.  If this module's resources are needed in a subsequent module, answer `NO` to the deletion question.
 
-# License and Credits
-This project is licensed under the [Apache License Version 2.0, January 2004](http://www.apache.org/licenses/).
-
-# List of Changes
+## Destroying The Stack
+Run `debug/debug-module.sh` a second time and answer `YES` to the deletion question.
