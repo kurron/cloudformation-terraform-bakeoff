@@ -57,7 +57,7 @@ Configuration files describe to Terraform the components needed to run a single 
 The infrastructure Terraform can manage includes low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc.
 ____
 
-It is open source and supports multiple clouds and hardware including. AWS, Google Cloud, Azure, Docker and Kubernetes.  It is completely command-line driven using text files as input, making it very compatible with an "infrastructure as code" culture.  The resource definitions are written in a JSON-like syntax known as HCL (Hashicorp Configuration Language).  Although not a full programming language, https://www.terraform.io/docs/configuration/interpolation.html#built-in-functions[functions are provided that allow for common operations], such as assembling lists or templating of text. Terraform has the notion of modules, providing a https://registry.terraform.io/[public registry] where the community can share "recipes" for building out infrastructure.
+It is open source and supports multiple clouds and hardware including. AWS, Google Cloud, Azure, Docker and Kubernetes.  It is completely command-line driven using text files as input, making it very compatible with an "infrastructure as code" culture.  The resource definitions are normally written in HCL (Hashicorp Configuration Language), but can also be expressed in JSON, if desired.  Although not a full programming language, https://www.terraform.io/docs/configuration/interpolation.html#built-in-functions[functions are provided that allow for common operations], such as assembling lists or templating of text. Terraform has the notion of modules, providing a https://registry.terraform.io/[public registry] where the community can share "recipes" for building out infrastructure.
 
 There is an enterprise version for organizations to grow into.
 
@@ -67,7 +67,7 @@ Available as a SaaS or private install, Terraform Enterprise provides collaborat
 ____
 
 === CloudFormation
-https://aws.amazon.com/cloudformation/[CloudFormation] is a tool provided by Amazon for managing infrastructure.
+https://aws.amazon.com/cloudformation/[CloudFormation] is a tool provided by Amazon for managing their infrastructure.
 
 [quote, CloudFormation Website]
 ____
@@ -77,9 +77,9 @@ AWS CloudFormation provides a common language for you to describe and provision 
 AWS CloudFormation is available at no additional charge, and you pay only for the AWS resources needed to run your applications.
 ____
 
-The tool only manages AWS resources and covers almost everything Amazon has to offer.  Although the command-line can be used to initiate stack creation, the tool really wants to be run via a web console.  The UI is simple but does help guide the operator as to what values need to be supplied or defaulted.  CloudFormation has something called a https://aws.amazon.com/blogs/aws/use-cloudformation-stacksets-to-provision-resources-across-multiple-aws-accounts-and-regions/[StackSet] which claims to ease the burden of rolling out infrastructure between different accounts and regions, if the templates are written correctly.  CloudFormation also has a visual designer which I've only found to be useful for visualizing foreign templates and too cumbersome for creation of stacks.  CloudFormation can examine existing infrastructure and generate a template via https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-using-cloudformer.html[CloudFormer].  Although there is no public registry of CloudFormation templates, Amazon does provide https://aws.amazon.com/cloudformation/aws-cloudformation-templates/[sample templates] that can be used for inspiration and there are a handful of templates baked into the UI.
+The tool only manages AWS resources and covers almost everything Amazon has to offer.  The stacks are described in YAML, but can also be described in JSON, if that is preferred. Although the command-line can be used to initiate stack creation, the tool really wants to be run via a web console.  The UI is simple but does help guide the operator as to what values need to be supplied or defaulted.  CloudFormation has something called a https://aws.amazon.com/blogs/aws/use-cloudformation-stacksets-to-provision-resources-across-multiple-aws-accounts-and-regions/[StackSet] which claims to ease the burden of rolling out infrastructure between different accounts and regions, if the templates are written correctly.  CloudFormation also has a visual designer which I've only found to be useful for visualizing foreign templates and too cumbersome for creation of stacks.  CloudFormation can examine existing infrastructure and generate a template via https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-using-cloudformer.html[CloudFormer].  Although there is no public registry of CloudFormation templates, Amazon does provide https://aws.amazon.com/cloudformation/aws-cloudformation-templates/[sample templates] that can be used for inspiration and there are a handful of templates baked into the UI.
 
-NOTE: all testing was done under my single, private account so I didn't examine the usefulness of StackSets.
+NOTE: Testing was done under my single, private account so I didn't examine the usefulness of StackSets.
 
 NOTE: CloudFormer was not part of this evaluation.
 
@@ -173,7 +173,7 @@ The modules build upon each other and need to be created in sequence for things 
 1. ecs-service
 1. composability
 
-TIP: if you don't care build out each module individually, you can just build the `composability` module, which constructs the entire stack in a single step.
+TIP: if you don't care to build out each module individually, you can just build the `composability` module, which constructs the entire stack in a single step.
 
 === Testing The Full Stack
 If you want to verify that the entire stack has been properly created, follow these steps:
@@ -306,6 +306,11 @@ I've found that you cannot run both stacks in the same region because you run ou
 I don't think I have the resource dependencies completely defined so if you get an error about something not existing when building the full stack using the `composability` module, just run the script again and it should cure itself.
 
 == Comparison
+=== Resource Tagging
+Both tools have comprehensive tagging support but CloudFormation has one feature that Terraform doesn't. If you use the GUI when creating a stack, you can fill out tags once and they are applied to all resources created by that stack.  I've only tested placing an additional tag and not replacing one already specified in the template.
+
+NOTE: in truth, not all resources are tagged. There are still some resources that don't get tagged by either tool. It could be that the underlying APIs don't support tagging even though there is a "tags" tab in the UI for the resource.  In short, tagging via the gui does allow for tagging of resources that were previously "untaggable"  but there are still resources that neither tool can tag.
+
 === VPC Creation
 Creating a VCP between the two tools is fairly similar.  Each makes you describe the various building blocks needed to construct a fully functional VPC and assemble them as needed.  Where they do differ is in the handling multiple instances of the same object.  For example, the scenario is to place  subnets into all availability zones of the region.  The Virgina region has 6 AZs while the Ohio region only has 3.  Terraform has a construct that allows you to build the same resource N number of times, saving on duplicated code.  CloudFormation does not provide anything similar so you have to duplicate the directives, increasing the amount of code and making the script less reusable.
 
@@ -454,6 +459,23 @@ Terraform has good story for this one. In fact, there is the https://registry.te
 CloudFormation has the notion of "nested stacks" where a master file imports and invokes the child modules.  Unlike Terraform, there isn't a registry of community modules.  All the files have to live in S3, which makes deployments a little less convenient and requires an additional step to continually move files from source control into a bucket.
 
 Compare the source of the link:terraform/composability/debug/plan.tf[Terraform version] to the link:cloudformation/ecs-service/scripts/update-stack.sh[CloudFormation version] and see which you prefer.
+
+=== Rollback Support
+Terraform will not attempt to rollback and created resources when errors are detected.  The operator has to tell Terraform to delete resources, if that is what is desired.  CloudFormation, however, can operate in a couple different modes.  One mode is to never rollback.  Another is to automatically rollback when an error is detected and, optionally, sending an SNS notification in case some system needs to know about the failure.  CloudFormation can also initiate a rollback if things are taking too long to build, probably indicating some sort of problem.
+
+== Summary
+I find both tools to be very capable and selecting one over the other boils down to the target environment and process.  Terraform excels in an environment where peer reviews of infrastructure changes are routine.  Proposed changes can be checked into a branch in source control, reviewed, merged and then executed. Large, complex environments that require access controls and auditing, however, require Terraform Enterprise.
+
+If the target environment is AWS only, then CloudFormation might be the better choice.  Amazon seems to be continually improving multi-account and multi-region support for no additional cost.  CloudFormation has the notion of Stack Policies which can protect against unwanted changes to important resources.
+
+[quote, CloudFormation Website]
+____
+Stack policies help protect critical stack resources from unintentional updates that could cause resources to be interrupted or even replaced. A stack policy is a JSON document that describes what update actions can be performed on designated resources. Specify a stack policy whenever you create a stack that has critical resources.
+
+During a stack update, you must explicitly specify the protected resources that you want to update; otherwise, no changes are made to protected resources.
+____
+
+Although CloudFormation's peer review workflow isn't as streamlined as Terraform, it at least exists. Although a bit cumbersome, people can check each others work by pulling up the console and eyeballing things.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
