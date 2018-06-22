@@ -296,6 +296,9 @@ If you want to verify that the Bastion server is functioning correctly, follow t
 IMPORTANT: When creating the Bastion boxes, you must've specified your public ip address as the allowed network or the firewall won't allow access.  If you didn't do this, you can go into the AWS console and adjust the Bastion box's security group, adding your ip address.
 
 == Troubleshooting
+=== Missing SSH Key Pair
+CloudFormation requires you to create the SSH key pair in the console.  Create a key pair named `BakeOff` prior to running any of the CloudFormation scripts.
+
 === SSH Key Permissions
 SSH is picky about permissions on key files so try `chmod 0400 BakeOff.pem` to see if that fixes the problem.
 
