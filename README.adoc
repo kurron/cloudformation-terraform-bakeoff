@@ -17,16 +17,23 @@ toc::[]
 This is a very unscientific comparison between https://www.terraform.io/[Terraform] and https://aws.amazon.com/cloudformation/[AWS CloudFormation].  What we'll do is to implement a couple tasks in both tools and evaluate their strengths and weaknesses.
 
 === Tagging
-Resource tagging is very important in AWS so we'll apply a common set of tags to all resources, calling out any differences in tagging support that might exist.
+Resource tagging is very important in AWS, especially for tracking costs, so we'll apply a common set of tags to all resources, calling out any differences in tagging support that might exist.
+
+* *name* - name of the resource, usually shows up in the console, e.g. `production-load-balancer`
+* *project* - project the resource belongs to, e.g. `weapon-x`
+* *purpose* - the role the resource plays or why it is needed, e.g. `forwards` traffic from the internal subnet to the internet`
+* *creator* - the person creating the resource, e.g. `logan@operations@example.com`
+* *environment* - logical grouping the resource belongs to, e.g. `production`
+* *freetext* - anything that doesn't fit in the other tags, such as a note, e.g. `odd subnets are private and even subnets are public`
 
 === VPC Creation
 The first task is to create a new VPC that contains a public and private subnet for each availability zone in the region, an internet gateway, route tables, elastic ips and NAT gateways.
 
 === Bastion Box
-SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type t2.nano, restricting access to port 22 from a single ip address.  Create an auto scaling group that will ensure we always have at least one box up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The instance should be based on the currently release Amazon Linux AMI.
+SSH access must be done by proxying through a Bastion server.  Install a single EC2 instance of type `t2.nano`, restricting access to port 22 from a single ip address.  Create an auto scaling group that will ensure we always have at least one box up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The instance should be based on the currently released Amazon Linux AMI.
 
 === ECS Cluster
-Create an ECS cluster using Spot Instances of type m4.large installed into the private subnets.  Create a public facing load balancer that routes traffic to the ECS work loads.  Construct the security groups so that only the Bastion boxes and load balancer can connect to the instances.  Create an auto scaling group that will ensure we always have at least 2 boxes up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The SSH key for the cluster should be the same one that the Bastion box uses.  The necessary IAM resources and CloudWatch Log Groups should also be created.  The log balancer's access logs should be saved in a S3 bucket that ages out the files after 1 week.
+Create an ECS cluster using Spot Instances of type `m4.large` installed into the private subnets.  Create a public facing load balancer that routes traffic to the ECS work loads.  Construct the security groups so that only the Bastion boxes and load balancer can connect to the instances.  Create an auto scaling group that will ensure we always have at least 2 boxes up and running.  The auto scaling group should be configured to turn off the boxes after normal business hours. The SSH key for the cluster should be the same one that the Bastion box uses, simplifying access.  The necessary IAM resources and CloudWatch Log Groups should also be created.  The log balancer's access logs should be saved in a S3 bucket that ages out the files after 1 week.
 
 === Deploy An ECS Service
 Deploy 3 containers to the ECS cluster, spreading the work load so each node gets one instance.  The load balancer should be configured so that the `/echo` path gets mapped to the containers.  The load balancer should be configured to issue health checks, removing any sick containers as they are detected. RAM and CPU limits should be placed on the containers.  The containers should be configured to publish log messages to CloudWatch Logs.
@@ -57,7 +64,7 @@ export AWS_DEFAULT_REGION="us-east-2"
 There isn't anything to build for this project.
 
 == Installation
-There isn't anything to install but you will need to run the `copy-files-to-s3.sh` script prior to running the `composability` script in the `terraform` directory.  Make sure to edit `copy-files-to-s3.sh` to use a unique bucket name. Using the existing bucket name will result in failures.
+There isn't anything to install but you will need to run the `copy-files-to-s3.sh` script prior to running the `composability` script in the `cloudformation` directory.  Make sure to edit `copy-files-to-s3.sh` to use a unique bucket name. Using the existing bucket name will result in failures.
 
 == Tips and Tricks
 === Terraform Scripts
@@ -133,15 +140,76 @@ If you want to verify that the entire stack has been properly created, follow th
 1. `curl --silent Bake-LoadB-11WJPPFIMI8T6-112579361.us-east-2.elb.amazonaws.com/echo/operations/health` to see the health check.
 1. `curl --silent Bake-LoadB-11WJPPFIMI8T6-112579361.us-east-2.elb.amazonaws.com/echo/` to more detailed environmental information.
 
+./echo/operations/info
+```
+{
+    "container": "f1efa6e2-92a1-459e-815c-57637f1815fd",
+    "host": "ip-10-0-1-96.us-east-2.compute.internal",
+    "zone": "us-east-2a"
+}
+```
+
+./echo/operations/health
+```
+{
+    "diskSpace": {
+        "free": 6970560512,
+        "status": "UP",
+        "threshold": 10485760,
+        "total": 8318783488
+    },
+    "status": "UP"
+}
+```
+./echo/
+```
+{
+    "addresses": [
+        "172.17.0.2",
+        "127.0.0.1"
+    ],
+    "calculated-return-path": "http://alb-2018062120252468650000000e-270115944.us-east-2.elb.amazonaws.com/echo",
+    "environment": {
+        "HOME": "/home/microservice",
+        "HOSTNAME": "spring-cloud",
+        "JAVA_HOME": "/usr/lib/jvm/zulu-8-amd64",
+        "JDK_HOME": "/usr/lib/jvm/zulu-8-amd64",
+        "LANG": "en_US.UTF-8",
+        "LANGUAGE": "en_US:en",
+        "LC_ALL": "en_US.UTF-8",
+        "NLSPATH": "/usr/dt/lib/nls/msg/%L/%N.cat",
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "PWD": "/home/microservice",
+        "SHLVL": "0",
+        "XFILESEARCHPATH": "/usr/dt/app-defaults/%L/Dt",
+        "server_context-path": "/echo"
+    },
+    "incoming-headers": {
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "host": "alb-2018062120252468650000000e-270115944.us-east-2.elb.amazonaws.com",
+        "user-agent": "HTTPie/0.9.9",
+        "x-amzn-trace-id": "Root=1-5b2cfbf0-ca954578fd39e510ce686ea0",
+        "x-forwarded-port": "80",
+        "x-forwarded-proto": "http"
+    },
+    "served-by": "m4.large:us-east-2c:i-0580f08918957b4f6:ip-10-0-5-5.us-east-2.compute.internal",
+    "status-code": 200,
+    "timestamp": "2018-06-22T13:38:57.095Z"
+}
+```
+
 === Testing SSH Access
 If you want to verify that the Bastion server is functioning correctly, follow these steps:
 
 1. `ssh-add BakeOff.pem` to import the private key
-1. `ssh-add BakeOff.pem` to verify that the import worked
+1. `ssh-add -l` to verify that the import worked
 1. use the console and find the public ip of the Bastion instance, e.g. `52.14.183.138`
 1. `ssh -A ec2-user@52.14.183.138` to SSH into the jump box
 1. use the console and find the private ip to one of the EC2 instances, e.g. `10.0.60.108`
 1. `ssh 10.0.60.108` to jump to an internal box
+
+IMPORTANT: when creation the Bastion boxes, you must've specified your public ip address as the allowed network or the firewall won't allow access.  If you didn't do this, you can go into the AWS console and adjust the Bastion box's security group, adding your ip address.
 
 == Troubleshooting
 === SSH Key Permissions
@@ -150,7 +218,7 @@ SSH is picky about permissions on key files so try `chmod 0400 BakeOff.pem` to s
 === Running Both Stacks
 I've found that you cannot run both stacks in the same region because you run out of elastic ips.  You can ask Amazon to increase your limit or edit the files so that different regions are used.
 
-=== Terraform Timing
+=== Terraform Failures
 I don't think I have the resource dependencies completely defined so if you get an error about something not existing, just run the script again and it should cure itself.
 
 == Comparison
