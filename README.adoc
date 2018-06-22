@@ -83,7 +83,7 @@ NOTE: all testing was done under my single, private account so I didn't examine 
 
 NOTE: CloudFormer was not part of this evaluation.
 
-image::cf-screenshot.jpg[CloudFormation UI]
+image::cf-screenshot.png[CloudFormation UI]
 
 == Prerequisites
 
