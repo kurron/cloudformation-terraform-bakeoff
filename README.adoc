@@ -57,7 +57,7 @@ Configuration files describe to Terraform the components needed to run a single 
 The infrastructure Terraform can manage includes low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc.
 ____
 
-It is open source and supports multiple clouds and hardware including. AWS, Google Cloud, Azure, Docker and Kubernetes.  It is completely command-line driven using text files as input, making if very compatible with an "infrastructure as code" culture.  The resource definitions are written in a JSON-like syntax known as HCL (Hashicorp Control Language).  Although not a full programming language, functions are provided that allow for common operations, such as assembling lists or templating of text. Terraform has the notion of modules, providing a https://registry.terraform.io/[public registry] where the community can share "recipes" for building out infrastructure.
+It is open source and supports multiple clouds and hardware including. AWS, Google Cloud, Azure, Docker and Kubernetes.  It is completely command-line driven using text files as input, making it very compatible with an "infrastructure as code" culture.  The resource definitions are written in a JSON-like syntax known as HCL (Hashicorp Configuration Language).  Although not a full programming language, https://www.terraform.io/docs/configuration/interpolation.html#built-in-functions[functions are provided that allow for common operations], such as assembling lists or templating of text. Terraform has the notion of modules, providing a https://registry.terraform.io/[public registry] where the community can share "recipes" for building out infrastructure.
 
 There is an enterprise version for organizations to grow into.
 
@@ -65,6 +65,25 @@ There is an enterprise version for organizations to grow into.
 ____
 Available as a SaaS or private install, Terraform Enterprise provides collaboration and governance capabilities. For teams of operators, it enables collaboration on infrastructure and a central service registry to publish and discover infrastructure modules. For organizations, it enables policy and governance to confidently provision at scale.
 ____
+
+=== CloudFormation
+https://aws.amazon.com/cloudformation/[CloudFormation] is a tool provided by Amazon for managing infrastructure.
+
+[quote, CloudFormation Website]
+____
+
+AWS CloudFormation provides a common language for you to describe and provision all the infrastructure resources in your cloud environment. CloudFormation allows you to use a simple text file to model and provision, in an automated and secure manner, all the resources needed for your applications across all regions and accounts. This file serves as the single source of truth for your cloud environment.
+
+AWS CloudFormation is available at no additional charge, and you pay only for the AWS resources needed to run your applications.
+____
+
+The tool only manages AWS resources and covers almost everything Amazon has to offer.  Although the command-line can be used to initiate stack creation, the tool really wants to be run via a web console.  The UI is simple but does help guide the operator as to what values need to be supplied or defaulted.  CloudFormation has something called a https://aws.amazon.com/blogs/aws/use-cloudformation-stacksets-to-provision-resources-across-multiple-aws-accounts-and-regions/[StackSet] which claims to ease the burden of rolling out infrastructure between different accounts and regions, if the templates are written correctly.  CloudFormation also has a visual designer which I've only found to be useful for visualizing foreign templates and too cumbersome for creation of stacks.  CloudFormation can examine existing infrastructure and generate a template via https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-using-cloudformer.html[CloudFormer].  Although there is no public registry of CloudFormation templates, Amazon does provide https://aws.amazon.com/cloudformation/aws-cloudformation-templates/[sample templates] that can be used for inspiration and there are a handful of templates baked into the UI.
+
+NOTE: all testing was done under my single, private account so I didn't examine the usefulness of StackSets.
+
+NOTE: CloudFormer was not part of this evaluation.
+
+image::cf-screenshot.jpg[CloudFormation UI]
 
 == Prerequisites
 
