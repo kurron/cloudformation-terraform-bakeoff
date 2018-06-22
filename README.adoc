@@ -475,7 +475,7 @@ Stack policies help protect critical stack resources from unintentional updates 
 During a stack update, you must explicitly specify the protected resources that you want to update; otherwise, no changes are made to protected resources.
 ____
 
-Although CloudFormation's peer review workflow isn't as streamlined as Terraform, it at least exists. Although a bit cumbersome, people can check each others work by pulling up the console and eyeballing things.
+Although CloudFormation's peer review workflow isn't as streamlined as Terraform, it at least exists. While a bit cumbersome, people can check each others work by pulling up the console and eyeballing things.
 
 == License and Credits
 This project is licensed under the https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License].
