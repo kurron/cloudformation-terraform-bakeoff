@@ -21,9 +21,9 @@ Resource tagging is very important in AWS, especially for tracking costs, so we'
 
 * *name* - name of the resource, usually shows up in the console, e.g. `production-load-balancer`
 * *project* - project the resource belongs to, e.g. `weapon-x`
-* *purpose* - the role the resource plays or why it is needed, e.g. `forwards` traffic from the internal subnet to the internet`
+* *purpose* - the role the resource plays or why it is needed, e.g. `forwards traffic from the internal subnet to the internet`
 * *creator* - the person creating the resource, e.g. `logan@operations@example.com`
-* *environment* - logical grouping the resource belongs to, e.g. `production`
+* *environment* - logical grouping the resource belongs to, e.g. `production` or `chaos-testing`
 * *freetext* - anything that doesn't fit in the other tags, such as a note, e.g. `odd subnets are private and even subnets are public`
 
 === VPC Creation
@@ -43,6 +43,28 @@ Change the number of desired containers instances up or down by 1. The goal is t
 
 === Create the entire stack using modules
 Normally, you don't want to define your entire stack in a single file.  Instead, you want to compose the stack out of smaller modules which have already been tested.  Create the entire stack using a modular approach.
+
+== Tool Overviews
+=== Terraform
+https://www.terraform.io/[Terraform] is one of the many tools part of the so called https://www.hashicorp.com/[Hashistack] focused on building out and maintaining infrastructure.
+
+[quote, Terraform Website]
+____
+Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
+
+Configuration files describe to Terraform the components needed to run a single application or your entire datacenter. Terraform generates an execution plan describing what it will do to reach the desired state, and then executes it to build the described infrastructure. As the configuration changes, Terraform is able to determine what changed and create incremental execution plans which can be applied.
+
+The infrastructure Terraform can manage includes low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc.
+____
+
+It is open source and supports multiple clouds and hardware including. AWS, Google Cloud, Azure, Docker and Kubernetes.  It is completely command-line driven using text files as input, making if very compatible with an "infrastructure as code" culture.  The resource definitions are written in a JSON-like syntax known as HCL (Hashicorp Control Language).  Although not a full programming language, functions are provided that allow for common operations, such as assembling lists or templating of text. Terraform has the notion of modules, providing a https://registry.terraform.io/[public registry] where the community can share "recipes" for building out infrastructure.
+
+There is an enterprise version for organizations to grow into.
+
+[quote, Terraform Website]
+____
+Available as a SaaS or private install, Terraform Enterprise provides collaboration and governance capabilities. For teams of operators, it enables collaboration on infrastructure and a central service registry to publish and discover infrastructure modules. For organizations, it enables policy and governance to confidently provision at scale.
+____
 
 == Prerequisites
 
@@ -132,6 +154,8 @@ The modules build upon each other and need to be created in sequence for things 
 1. ecs-service
 1. composability
 
+TIP: if you don't care build out each module individually, you can just build the `composability` module, which constructs the entire stack in a single step.
+
 === Testing The Full Stack
 If you want to verify that the entire stack has been properly created, follow these steps:
 
@@ -199,6 +223,47 @@ If you want to verify that the entire stack has been properly created, follow th
 }
 ```
 
+./echo/operations/metrics
+```
+{
+    "classes": 6674,
+    "classes.loaded": 6674,
+    "classes.unloaded": 0,
+    "counter.status.200.operations.health": 4067,
+    "counter.status.200.operations.info": 1,
+    "counter.status.200.root": 1,
+    "counter.status.404.star-star": 1,
+    "gauge.response.operations.health": 0.0,
+    "gauge.response.operations.info": 65.0,
+    "gauge.response.root": 380.0,
+    "gauge.response.star-star": 6.0,
+    "gc.copy.count": 236,
+    "gc.copy.time": 586,
+    "gc.marksweepcompact.count": 8,
+    "gc.marksweepcompact.time": 261,
+    "heap": 124736,
+    "heap.committed": 34136,
+    "heap.init": 8192,
+    "heap.used": 26083,
+    "httpsessions.active": 0,
+    "httpsessions.max": -1,
+    "instance.uptime": 20411631,
+    "mem": 95786,
+    "mem.free": 8052,
+    "nonheap": 0,
+    "nonheap.committed": 63232,
+    "nonheap.init": 2496,
+    "nonheap.used": 61650,
+    "processors": 2,
+    "systemload.average": 0.0,
+    "threads": 21,
+    "threads.daemon": 19,
+    "threads.peak": 23,
+    "threads.totalStarted": 28,
+    "uptime": 20418643
+}
+```
+
 === Testing SSH Access
 If you want to verify that the Bastion server is functioning correctly, follow these steps:
 
@@ -209,7 +274,7 @@ If you want to verify that the Bastion server is functioning correctly, follow t
 1. use the console and find the private ip to one of the EC2 instances, e.g. `10.0.60.108`
 1. `ssh 10.0.60.108` to jump to an internal box
 
-IMPORTANT: when creation the Bastion boxes, you must've specified your public ip address as the allowed network or the firewall won't allow access.  If you didn't do this, you can go into the AWS console and adjust the Bastion box's security group, adding your ip address.
+IMPORTANT: When creating the Bastion boxes, you must've specified your public ip address as the allowed network or the firewall won't allow access.  If you didn't do this, you can go into the AWS console and adjust the Bastion box's security group, adding your ip address.
 
 == Troubleshooting
 === SSH Key Permissions
@@ -219,7 +284,7 @@ SSH is picky about permissions on key files so try `chmod 0400 BakeOff.pem` to s
 I've found that you cannot run both stacks in the same region because you run out of elastic ips.  You can ask Amazon to increase your limit or edit the files so that different regions are used.
 
 === Terraform Failures
-I don't think I have the resource dependencies completely defined so if you get an error about something not existing, just run the script again and it should cure itself.
+I don't think I have the resource dependencies completely defined so if you get an error about something not existing when building the full stack using the `composability` module, just run the script again and it should cure itself.
 
 == Comparison
 === VPC Creation
