@@ -410,7 +410,7 @@ TaskDefinition:
 ```
 NOTE: I bring up templating only to note that CloudFormation does not appear to have the capability, but it could be that they don't ever expect you to need it.
 
-NOTE: after my evaluation, I discovered the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html[Fn::Sub] function, which provides templating capabilities.
+NOTE: After my evaluation, I discovered the https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html[Fn::Sub] function, which provides templating capabilities.
 
 Compare the source of the link:terraform/ecs-service/main.tf[Terraform version] to the link:cloudformation/ecs-service/service.yml[CloudFormation version] and see which you prefer.
 
