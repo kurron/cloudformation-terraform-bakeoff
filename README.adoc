@@ -164,8 +164,7 @@ If you forget this step, the stack will fail because it won't recognize the VPC 
 
 To remove resources, run `scripts/destroy-stack.sh`.
 
-NOTE: after I completed my evaluation, I discovered https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html[Fn::ImportValue] which allows one stack to reference the output value of another stack.  Output variables must be unique within the account.  Having the operator paste in values by hand is likely not necessary.
-
+NOTE: After I completed my evaluation, I discovered https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html[Fn::ImportValue] which allows one stack to reference the output value of another stack. 
 
 === Module Execution Order
 The modules build upon each other and need to be created in sequence for things to work correctly.
